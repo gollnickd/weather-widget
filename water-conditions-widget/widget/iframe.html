@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfect Paddles Water Conditions</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: transparent;
+            padding: 8px;
+        }
+        
+        #pp-water-widget {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="pp-water-widget" data-pp-widget></div>
+    
+    <script src="water-conditions-widget.js"></script>
+    <script>
+        // Get parameters from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const apiKey = urlParams.get('api_key');
+        const locationId = urlParams.get('location_id');
+        
+        if (apiKey && locationId) {
+            // Initialize widget
+            PerfectPaddlesWidget.init('pp-water-widget', apiKey, locationId);
+        } else {
+            document.getElementById('pp-water-widget').innerHTML = `
+                <div style="padding: 20px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; text-align: center;">
+                    <p style="margin: 0; color: #856404; font-size: 14px;">
+                        <strong>Configuration Error</strong><br>
+                        Missing API key or location ID parameters.
+                    </p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

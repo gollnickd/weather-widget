@@ -1,0 +1,44 @@
+<!-- Perfect Paddles Water Conditions Widget - Simple Embed -->
+<!-- Installation Method #1: Script Tag -->
+
+<!-- STEP 1: Add this container div where you want the widget to appear -->
+<div id="pp-water-widget"></div>
+
+<!-- STEP 2: Add the widget script -->
+<script src="https://your-domain.com/widget.js"></script>
+
+<!-- STEP 3: Initialize with your API key -->
+<script>
+  PPWaterWidget.init({
+    containerId: 'pp-water-widget',
+    apiKey: 'YOUR_API_KEY_HERE'
+  });
+</script>
+
+<!-- 
+  CUSTOMIZATION OPTIONS:
+  
+  You can customize the widget by passing additional options:
+  
+  PPWaterWidget.init({
+    containerId: 'pp-water-widget',  // ID of container element
+    apiKey: 'YOUR_API_KEY_HERE',     // Your unique API key
+    apiEndpoint: 'https://your-domain.com/api/widget/conditions', // Optional: custom endpoint
+    refreshInterval: 600000           // Optional: refresh interval in milliseconds (default: 10 minutes)
+  });
+  
+  MANUAL REFRESH:
+  
+  You can manually refresh the widget data:
+  PPWaterWidget.refresh();
+  
+  REQUIREMENTS:
+  
+  - Modern browser with JavaScript enabled
+  - Internet connection
+  - Valid API key from Perfect Paddles
+  
+  SUPPORT:
+  
+  For questions or support, contact: support@perfectpaddles.com
+-->
