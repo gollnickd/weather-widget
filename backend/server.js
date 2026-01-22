@@ -2,6 +2,7 @@
 // Handles weather data fetching, caching, and widget API
 
 const express = require('express');
+const path = require('path');
 const mysql = require('mysql2/promise');
 const axios = require('axios');
 const cron = require('node-cron');
@@ -346,6 +347,19 @@ app.get('/api/widget/conditions/:apiKey', async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// Serve widget.js
+app.get('/widget.js', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'frontend', 'widget.js'));
+});
+
+// Serve widget iframe
+app.get('/widget-iframe.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'frontend', 'widget-iframe.html'));
+});
+
+// Serve admin dashboard
+app.use('/admin', express.static(path.join(__dirname, '..', 'admin')));
 
 // Start server
 app.listen(PORT, () => {
