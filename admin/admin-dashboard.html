@@ -482,7 +482,10 @@
           <p style="color: #6B7280; font-size: 14px; margin-top: 5px;">
             Shows data pulled from WeatherAPI.com - "Fetched At" is when we pulled from the weather API
           </p>
-          <button class="btn btn-secondary" onclick="loadWeatherData()">↻ Refresh</button>
+          <div style="display: flex; gap: 10px;">
+            <button class="btn btn-success" onclick="refreshAllNow()">🔄 Refresh All Now</button>
+            <button class="btn btn-secondary" onclick="loadWeatherData()">↻ Reload Table</button>
+          </div>
         </div>
         
         <table id="weather-data-table">

@@ -115,12 +115,28 @@ async function fetchWeatherData(latitude, longitude) {
     const current = response.data.current;
     
     // Always use Fahrenheit - WeatherAPI returns both temp_c and temp_f
-    // Prefer temp_f, but convert temp_c if temp_f is missing
     let temperature;
+    
+    // SANITY CHECK: If temp_f seems to be Celsius (very low values in winter locations)
+    // Seattle winter should be 35-50°F, not -20 to 10°F
+    // If temp_f is suspiciously low but temp_c makes sense, API might be mislabeled
     if (current.temp_f !== null && current.temp_f !== undefined) {
-      temperature = current.temp_f;
-      console.log(`Using temp_f: ${temperature}°F for location ${latitude},${longitude}`);
+      // Check if temp_f might actually be Celsius (common WeatherAPI bug)
+      // If temp_f is below 20 and temp_c exists and they're close, temp_f is probably Celsius
+      if (current.temp_f < 20 && current.temp_c !== null && 
+          Math.abs(current.temp_f - current.temp_c) < 5) {
+        // temp_f is actually Celsius! Convert it
+        temperature = (current.temp_f * 9/5) + 32;
+        console.log(`🔧 BUG DETECTED: API returned temp_f=${current.temp_f} which appears to be Celsius!`);
+        console.log(`   Converted ${current.temp_f}°C to ${temperature}°F`);
+        console.log(`   API also returned temp_c=${current.temp_c} (confirming the bug)`);
+      } else {
+        // temp_f looks correct, use it
+        temperature = current.temp_f;
+        console.log(`Using temp_f: ${temperature}°F for location ${latitude},${longitude}`);
+      }
     } else if (current.temp_c !== null && current.temp_c !== undefined) {
+      // No temp_f, use temp_c and convert
       temperature = (current.temp_c * 9/5) + 32;
       console.log(`Converted temperature from ${current.temp_c}°C to ${temperature}°F for location ${latitude},${longitude}`);
     } else {
@@ -505,6 +521,65 @@ app.get('/api/admin/weather-data', async (req, res) => {
   } catch (error) {
     console.error('Admin weather data error:', error);
     res.status(500).json({ error: 'Failed to fetch weather data' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Manual refresh all locations (immediate weather update)
+app.post('/api/admin/refresh-all-now', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    console.log('🔄 Manual refresh triggered by admin');
+    
+    // Get all active locations
+    const [locations] = await connection.query(
+      'SELECT id, location_name, latitude, longitude FROM locations WHERE is_active = TRUE'
+    );
+    
+    if (locations.length === 0) {
+      return res.json({ success: true, message: 'No active locations to refresh' });
+    }
+    
+    let successCount = 0;
+    let failCount = 0;
+    const results = [];
+    
+    // Refresh each location
+    for (const location of locations) {
+      try {
+        await updateLocationWeather(location.id);
+        successCount++;
+        results.push({
+          location: location.location_name,
+          status: 'success'
+        });
+        console.log(`✅ Refreshed: ${location.location_name}`);
+      } catch (error) {
+        failCount++;
+        results.push({
+          location: location.location_name,
+          status: 'failed',
+          error: error.message
+        });
+        console.error(`❌ Failed to refresh ${location.location_name}:`, error.message);
+      }
+    }
+    
+    console.log(`🔄 Manual refresh complete: ${successCount} success, ${failCount} failed`);
+    
+    res.json({
+      success: true,
+      message: `Refreshed ${successCount} of ${locations.length} locations`,
+      total: locations.length,
+      successful: successCount,
+      failed: failCount,
+      results: results
+    });
+    
+  } catch (error) {
+    console.error('Manual refresh error:', error);
+    res.status(500).json({ error: 'Failed to refresh locations' });
   } finally {
     connection.release();
   }

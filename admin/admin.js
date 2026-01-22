@@ -162,6 +162,42 @@ async function loadWeatherData() {
   }
 }
 
+async function refreshAllNow() {
+  if (!confirm('This will immediately pull fresh weather data from WeatherAPI.com for all locations. Continue?')) {
+    return;
+  }
+  
+  const button = event.target;
+  button.disabled = true;
+  button.textContent = '🔄 Refreshing...';
+  
+  try {
+    console.log('Triggering manual refresh...');
+    const response = await fetch(`${API_BASE}/refresh-all-now`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok && result.success) {
+      alert(`✅ ${result.message}\n\nSuccessful: ${result.successful}\nFailed: ${result.failed}`);
+      // Reload weather data table
+      loadWeatherData();
+    } else {
+      alert('Error: ' + (result.error || 'Failed to refresh'));
+    }
+  } catch (error) {
+    console.error('Error refreshing:', error);
+    alert('Network error. Please try again.');
+  } finally {
+    button.disabled = false;
+    button.textContent = '🔄 Refresh All Now';
+  }
+}
+
 async function loadApiLogs() {
   try {
     const response = await fetch(`${API_BASE}/logs`);
