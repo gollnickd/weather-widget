@@ -255,7 +255,29 @@ app.get('/api/widget/conditions/:apiKey', async (req, res) => {
     
     // Verify API key and get customer/location
     const [results] = await connection.query(
-      `SELECT l.*, c.id as customer_id, c.company_name, wd.*
+      `SELECT 
+         l.id as location_id,
+         l.customer_id,
+         l.location_name,
+         l.water_body_name,
+         l.city,
+         l.state,
+         l.zip_code,
+         l.latitude,
+         l.longitude,
+         l.timezone,
+         c.id as customer_id, 
+         c.company_name,
+         wd.id as weather_data_id,
+         wd.wind_speed_mph,
+         wd.wind_gust_mph,
+         wd.wind_direction_degrees,
+         wd.wave_height_ft,
+         wd.temperature_f,
+         wd.conditions_text,
+         wd.condition_level,
+         wd.fetched_at,
+         wd.expires_at
        FROM customers c
        JOIN locations l ON l.customer_id = c.id
        LEFT JOIN weather_data wd ON wd.location_id = l.id
@@ -276,12 +298,12 @@ app.get('/api/widget/conditions/:apiKey', async (req, res) => {
     // Check if data is expired or doesn't exist
     if (!location.fetched_at || new Date(location.expires_at) < new Date()) {
       // Trigger immediate refresh
-      await updateLocationWeather(location.id);
+      await updateLocationWeather(location.location_id);
       
       // Fetch updated data
       const [updated] = await connection.query(
         `SELECT * FROM weather_data WHERE location_id = ? ORDER BY fetched_at DESC LIMIT 1`,
-        [location.id]
+        [location.location_id]
       );
       
       if (updated.length > 0) {
@@ -316,14 +338,19 @@ app.get('/api/widget/conditions/:apiKey', async (req, res) => {
       nextUpdate: new Date(Date.now() + 10 * 60 * 1000).toISOString()
     };
     
-    // Log request
+    // Log request (use valid location_id or NULL to avoid foreign key errors)
     const responseTime = Date.now() - startTime;
-    await connection.query(
-      `INSERT INTO api_logs (customer_id, location_id, endpoint, response_time_ms, status_code, ip_address, user_agent)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [location.customer_id, location.id, '/api/widget/conditions', responseTime, 200, 
-       req.ip, req.get('user-agent')]
-    );
+    try {
+      await connection.query(
+        `INSERT INTO api_logs (customer_id, location_id, endpoint, response_time_ms, status_code, ip_address, user_agent)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [location.customer_id || null, location.location_id || null, '/api/widget/conditions', responseTime, 200, 
+         req.ip, req.get('user-agent')]
+      );
+    } catch (logError) {
+      // Don't fail the request if logging fails
+      console.error('Failed to log API request:', logError.message);
+    }
     
     res.json(response);
     
@@ -331,11 +358,15 @@ app.get('/api/widget/conditions/:apiKey', async (req, res) => {
     console.error('API Error:', error);
     
     const responseTime = Date.now() - startTime;
-    await connection.query(
-      `INSERT INTO api_logs (endpoint, response_time_ms, status_code, error_message, ip_address)
-       VALUES (?, ?, ?, ?, ?)`,
-      ['/api/widget/conditions', responseTime, 500, error.message, req.ip]
-    );
+    try {
+      await connection.query(
+        `INSERT INTO api_logs (endpoint, response_time_ms, status_code, error_message, ip_address)
+         VALUES (?, ?, ?, ?, ?)`,
+        ['/api/widget/conditions', responseTime, 500, error.message, req.ip]
+      );
+    } catch (logError) {
+      console.error('Failed to log API error:', logError.message);
+    }
     
     res.status(500).json({ error: 'Internal server error' });
   } finally {
