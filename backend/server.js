@@ -450,6 +450,26 @@ app.get('/api/admin/locations', async (req, res) => {
   }
 });
 
+// Get weather data
+app.get('/api/admin/weather-data', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [data] = await connection.query(
+      `SELECT wd.*, l.location_name, l.water_body_name, c.company_name
+       FROM weather_data wd
+       JOIN locations l ON l.id = wd.location_id
+       JOIN customers c ON c.id = l.customer_id
+       ORDER BY wd.fetched_at DESC`
+    );
+    res.json(data);
+  } catch (error) {
+    console.error('Admin weather data error:', error);
+    res.status(500).json({ error: 'Failed to fetch weather data' });
+  } finally {
+    connection.release();
+  }
+});
+
 // Get refresh schedule
 app.get('/api/admin/refresh-schedule', async (req, res) => {
   const connection = await pool.getConnection();

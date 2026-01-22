@@ -285,28 +285,66 @@
         advanced: '🌊🌊🌊'
       }[conditions.level] || '🌊';
       
-      // Water-themed SVG icons for each condition level
+      // Dynamic weather-aware SVG icons
+      // Determine weather overlay based on weather_condition and cloud_cover
+      const weatherCondition = data.weather_condition ? data.weather_condition.toLowerCase() : '';
+      const cloudCover = data.cloud_cover || 0;
+      
+      // Determine if sunny, partly cloudy, or cloudy
+      let weatherOverlay = '';
+      const isSunny = cloudCover < 30 || weatherCondition.includes('sunny') || weatherCondition.includes('clear');
+      const isPartlyCloudy = (cloudCover >= 30 && cloudCover < 70) || weatherCondition.includes('partly') || weatherCondition.includes('overcast');
+      const isCloudy = cloudCover >= 70 || weatherCondition.includes('cloudy') || weatherCondition.includes('overcast');
+      
+      if (isSunny) {
+        // Orange sun in corner
+        weatherOverlay = `<circle cx="38" cy="6" r="4" fill="#FF9500"/>
+          <line x1="38" y1="1" x2="38" y2="3" stroke="#FF9500" stroke-width="1"/>
+          <line x1="38" y1="9" x2="38" y2="11" stroke="#FF9500" stroke-width="1"/>
+          <line x1="33" y1="6" x2="35" y2="6" stroke="#FF9500" stroke-width="1"/>
+          <line x1="41" y1="6" x2="43" y2="6" stroke="#FF9500" stroke-width="1"/>
+          <line x1="34.5" y1="2.5" x2="36" y2="4" stroke="#FF9500" stroke-width="1"/>
+          <line x1="40" y1="8" x2="41.5" y2="9.5" stroke="#FF9500" stroke-width="1"/>
+          <line x1="41.5" y1="2.5" x2="40" y2="4" stroke="#FF9500" stroke-width="1"/>
+          <line x1="36" y1="8" x2="34.5" y2="9.5" stroke="#FF9500" stroke-width="1"/>`;
+      } else if (isPartlyCloudy) {
+        // Sun + clouds
+        weatherOverlay = `<circle cx="38" cy="6" r="3" fill="#FF9500" opacity="0.7"/>
+          <ellipse cx="36" cy="9" rx="4" ry="2.5" fill="white" opacity="0.9"/>
+          <ellipse cx="40" cy="9" rx="3.5" ry="2" fill="white" opacity="0.9"/>`;
+      } else if (isCloudy) {
+        // Just clouds
+        weatherOverlay = `<ellipse cx="36" cy="7" rx="4" ry="2.5" fill="white" opacity="0.95"/>
+          <ellipse cx="40" cy="7" rx="4" ry="2.5" fill="white" opacity="0.95"/>
+          <ellipse cx="38" cy="5" rx="3" ry="2" fill="white" opacity="0.95"/>`;
+      }
+      
       const conditionIcon = {
-        beginner: `<svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <!-- Calm water with paddle -->
-          <path d="M3 12c0 0 2-3 5-3s5 3 5 3 2-3 5-3 6 3 6 3"/>
-          <circle cx="12" cy="8" r="2" fill="white"/>
-          <path d="M12 10v8"/>
-          <path d="M9 18h6"/>
+        beginner: `<svg width="50" height="50" viewBox="0 0 48 48" fill="none">
+          <!-- Calm flat water - blue -->
+          <path d="M 4 24 Q 10 22 16 24 T 28 24 T 40 24 T 44 24" 
+                stroke="#3B82F6" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M 4 28 Q 10 26 16 28 T 28 28 T 40 28 T 44 28" 
+                stroke="#3B82F6" stroke-width="2" fill="none" opacity="0.6" stroke-linecap="round"/>
+          ${weatherOverlay}
         </svg>`,
-        intermediate: `<svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <!-- Moderate waves -->
-          <path d="M2 12c0 0 2-4 4-4s4 4 4 4 2-4 4-4 4 4 4 4 2-4 4-4"/>
-          <path d="M2 16c0 0 2-3 4-3s4 3 4 3 2-3 4-3 4 3 4 3 2-3 4-3"/>
-          <path d="M14 6l2-2m0 0l2 2m-2-2v4"/>
+        intermediate: `<svg width="50" height="50" viewBox="0 0 48 48" fill="none">
+          <!-- Small blue waves -->
+          <path d="M 4 24 Q 8 18 12 24 T 20 24 Q 24 18 28 24 T 36 24 Q 40 18 44 24" 
+                stroke="#3B82F6" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M 4 30 Q 8 26 12 30 T 20 30 Q 24 26 28 30 T 36 30 Q 40 26 44 30" 
+                stroke="#3B82F6" stroke-width="2" fill="none" opacity="0.7" stroke-linecap="round"/>
+          ${weatherOverlay}
         </svg>`,
-        advanced: `<svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <!-- Strong waves with wind -->
-          <path d="M2 10c0 0 2-5 4-5s4 5 4 5 2-5 4-5 4 5 4 5 2-5 4-5"/>
-          <path d="M2 15c0 0 2-4 4-4s4 4 4 4 2-4 4-4 4 4 4 4"/>
-          <path d="M2 20c0 0 2-3 4-3s4 3 4 3 2-3 4-3 4 3 4 3"/>
-          <path d="M16 4l3-2m0 0l2 2m-2-2l-2 2"/>
-          <path d="M18 8l3-2m0 0l2 2m-2-2l-2 2"/>
+        advanced: `<svg width="50" height="50" viewBox="0 0 48 48" fill="none">
+          <!-- Big blue waves -->
+          <path d="M 4 20 Q 8 12 12 20 T 20 20 Q 24 12 28 20 T 36 20 Q 40 12 44 20" 
+                stroke="#3B82F6" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M 4 26 Q 8 18 12 26 T 20 26 Q 24 18 28 26 T 36 26 Q 40 18 44 26" 
+                stroke="#3B82F6" stroke-width="2.5" fill="none" opacity="0.8" stroke-linecap="round"/>
+          <path d="M 4 32 Q 8 26 12 32 T 20 32 Q 24 26 28 32 T 36 32 Q 40 26 44 32" 
+                stroke="#3B82F6" stroke-width="2" fill="none" opacity="0.6" stroke-linecap="round"/>
+          ${weatherOverlay}
         </svg>`
       }[conditions.level] || conditionIcon.beginner;
       
