@@ -56,6 +56,16 @@ const THRESHOLDS = {
 };
 
 /**
+ * Convert wind direction degrees to compass direction
+ */
+function getWindDirectionText(degrees) {
+  if (degrees === null || degrees === undefined) return 'N';
+  const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const index = Math.round(((degrees % 360) / 45)) % 8;
+  return directions[index];
+}
+
+/**
  * Determine condition level based on weather data
  */
 function determineConditionLevel(windSpeed, gustSpeed, waveHeight) {
@@ -104,12 +114,23 @@ async function fetchWeatherData(latitude, longitude) {
     
     const current = response.data.current;
     
+    // Get temperature - try Fahrenheit first, fallback to converting Celsius
+    let temperature = current.temp_f;
+    if (!temperature && current.temp_c) {
+      // Convert Celsius to Fahrenheit if temp_f is not available
+      temperature = (current.temp_c * 9/5) + 32;
+      console.log(`Converted temperature from ${current.temp_c}°C to ${temperature}°F`);
+    }
+    
     return {
       windSpeed: current.wind_mph,
       gustSpeed: current.gust_mph,
       windDirection: current.wind_degree,
-      temperature: current.temp_f,
+      temperature: temperature,
       conditionsText: current.condition.text,
+      cloudCover: current.cloud,
+      humidity: current.humidity,
+      weatherCondition: current.condition.text,
       waveHeight: 0, // WeatherAPI doesn't provide wave data, would need marine-specific API
       raw: response.data
     };
@@ -154,19 +175,23 @@ async function updateLocationWeather(locationId) {
     // Insert weather data
     await connection.query(
       `INSERT INTO weather_data 
-       (location_id, wind_speed_mph, wind_gust_mph, wind_direction_degrees, 
+       (location_id, wind_speed_mph, wind_gust_mph, wind_direction_degrees, wind_direction,
         wave_height_ft, temperature_f, conditions_text, condition_level, 
-        raw_data, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        cloud_cover, humidity, weather_condition, raw_data, expires_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         locationId,
         weatherData.windSpeed,
         weatherData.gustSpeed,
         weatherData.windDirection,
+        getWindDirectionText(weatherData.windDirection),
         weatherData.waveHeight,
         weatherData.temperature,
         weatherData.conditionsText,
         condition.level,
+        weatherData.cloudCover,
+        weatherData.humidity,
+        weatherData.weatherCondition,
         JSON.stringify(weatherData.raw),
         expiresAt
       ]

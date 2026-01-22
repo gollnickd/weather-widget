@@ -43,6 +43,7 @@ function switchTab(tabName) {
   
   if (tabName === 'customers') loadCustomers();
   else if (tabName === 'locations') loadLocations();
+  else if (tabName === 'weather-data') loadWeatherData();
   else if (tabName === 'api-logs') loadApiLogs();
   else if (tabName === 'refresh-schedule') loadRefreshSchedule();
   else if (tabName === 'settings') loadSettings();
@@ -124,6 +125,40 @@ async function loadLocations() {
     `).join('');
   } catch (error) {
     console.error('Error loading locations:', error);
+  }
+}
+
+async function loadWeatherData() {
+  try {
+    console.log('Fetching:', `${API_BASE}/weather-data`);
+    const response = await fetch(`${API_BASE}/weather-data`);
+    const data = await response.json();
+    console.log('Weather Data:', data);
+    
+    const tbody = document.querySelector('#weather-data-table tbody');
+    tbody.innerHTML = data.map(w => `
+      <tr>
+        <td><strong>${w.location_name}</strong><br><small>${w.water_body_name || ''}</small></td>
+        <td>
+          <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; 
+                 background: ${w.condition_level === 'beginner' ? '#D1FAE5' : w.condition_level === 'intermediate' ? '#FEF3C7' : '#FEE2E2'};
+                 color: ${w.condition_level === 'beginner' ? '#065F46' : w.condition_level === 'intermediate' ? '#92400E' : '#991B1B'};">
+            ${w.condition_level ? w.condition_level.toUpperCase() : 'N/A'}
+          </span>
+        </td>
+        <td>${w.temperature_f ? w.temperature_f + '°F' : 'N/A'}</td>
+        <td>${w.wind_speed_mph ? w.wind_speed_mph + ' mph' : 'N/A'}</td>
+        <td>${w.wind_direction || 'N/A'}</td>
+        <td>${w.weather_condition || 'N/A'}</td>
+        <td>${w.cloud_cover != null ? w.cloud_cover + '%' : 'N/A'}</td>
+        <td>${w.humidity != null ? w.humidity + '%' : 'N/A'}</td>
+        <td>${w.fetched_at ? new Date(w.fetched_at).toLocaleString() : 'Never'}</td>
+      </tr>
+    `).join('');
+  } catch (error) {
+    console.error('Error loading weather data:', error);
+    document.querySelector('#weather-data-table tbody').innerHTML = 
+      `<tr><td colspan="9">Error: ${error.message}</td></tr>`;
   }
 }
 
