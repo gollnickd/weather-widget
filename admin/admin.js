@@ -3,11 +3,36 @@
  */
 
 const API_BASE = `${window.location.protocol}//${window.location.host}/api/admin`;
+let authToken = localStorage.getItem('admin_token');
 
+// Check authentication on load
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('Admin Dashboard loaded, API_BASE:', API_BASE);
-  loadDashboardStats();
-  loadCustomers();
+  // Verify session
+  if (!authToken) {
+    window.location.href = '/admin/login.html';
+    return;
+  }
+  
+  fetch(`${API_BASE}/verify`, {
+    headers: { 'Authorization': `Bearer ${authToken}` }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (!data.valid) {
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
+      window.location.href = '/admin/login.html';
+    } else {
+      // Load dashboard
+      console.log('Admin Dashboard loaded, API_BASE:', API_BASE);
+      loadDashboardStats();
+      loadCustomers();
+      setupFormHandlers();
+    }
+  })
+  .catch(() => {
+    window.location.href = '/admin/login.html';
+  });
 });
 
 function switchTab(tabName) {
@@ -146,7 +171,199 @@ async function loadSettings() {
   }
 }
 
-// Dummy functions for buttons
-function openModal() {}
-function closeModal() {}
-function setupFormHandlers() {}
+// Modal management
+function openModal(modalId) {
+  const modal = document.getElementById(`${modalId}-modal`);
+  if (modal) {
+    modal.classList.add('active');
+    
+    // Load customers for location dropdown
+    if (modalId === 'add-location') {
+      loadCustomersForSelect();
+    }
+  }
+}
+
+function closeModal(modalId) {
+  const modal = document.getElementById(`${modalId}-modal`);
+  if (modal) {
+    modal.classList.remove('active');
+  }
+}
+
+// Form handlers
+function setupFormHandlers() {
+  // Add Customer Form
+  const customerForm = document.getElementById('add-customer-form');
+  if (customerForm) {
+    customerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(customerForm);
+      const data = Object.fromEntries(formData);
+      
+      try {
+        const response = await fetch(`${API_BASE}/customers`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+          alert(`Customer added successfully!\n\nAPI Key: ${result.api_key}\n\nPlease save this key - it won't be shown again.`);
+          closeModal('add-customer');
+          customerForm.reset();
+          loadCustomers();
+        } else {
+          alert('Error: ' + (result.error || 'Failed to add customer'));
+        }
+      } catch (error) {
+        console.error('Error adding customer:', error);
+        alert('Network error. Please try again.');
+      }
+    });
+  }
+  
+  // Add Location Form
+  const locationForm = document.getElementById('add-location-form');
+  if (locationForm) {
+    locationForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const formData = new FormData(locationForm);
+      const data = Object.fromEntries(formData);
+      
+      try {
+        const response = await fetch(`${API_BASE}/locations`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+          alert('Location added successfully!');
+          closeModal('add-location');
+          locationForm.reset();
+          loadLocations();
+        } else {
+          alert('Error: ' + (result.error || 'Failed to add location'));
+        }
+      } catch (error) {
+        console.error('Error adding location:', error);
+        alert('Network error. Please try again.');
+      }
+    });
+  }
+  
+  // Settings Form
+  const settingsForm = document.getElementById('settings-form');
+  if (settingsForm) {
+    settingsForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const beginnerWind = document.getElementById('beginner-wind').value;
+      const intermediateWind = document.getElementById('intermediate-wind').value;
+      
+      const settings = {
+        'beginner_wind_max_mph': beginnerWind,
+        'intermediate_wind_max_mph': intermediateWind
+      };
+      
+      try {
+        const response = await fetch(`${API_BASE}/settings`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify(settings)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+          alert('Settings saved successfully!');
+        } else {
+          alert('Error: ' + (result.error || 'Failed to save settings'));
+        }
+      } catch (error) {
+        console.error('Error saving settings:', error);
+        alert('Network error. Please try again.');
+      }
+    });
+  }
+}
+
+// Load customers for dropdown
+async function loadCustomersForSelect() {
+  try {
+    const response = await fetch(`${API_BASE}/customers`);
+    const customers = await response.json();
+    
+    const select = document.getElementById('location-customer-select');
+    if (select) {
+      select.innerHTML = '<option value="">Select customer...</option>' +
+        customers.map(c => `<option value="${c.id}">${c.company_name}</option>`).join('');
+    }
+  } catch (error) {
+    console.error('Error loading customers for select:', error);
+  }
+}
+
+// Logout function
+function logout() {
+  if (confirm('Are you sure you want to logout?')) {
+    fetch(`${API_BASE}/logout`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    })
+    .finally(() => {
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_user');
+      window.location.href = '/admin/login.html';
+    });
+  }
+}
+
+// Save settings (alternative to form submit)
+async function saveSettings() {
+  const beginnerWind = document.getElementById('beginner-wind').value;
+  const intermediateWind = document.getElementById('intermediate-wind').value;
+  
+  const settings = {
+    'beginner_wind_max_mph': beginnerWind,
+    'intermediate_wind_max_mph': intermediateWind
+  };
+  
+  try {
+    const response = await fetch(`${API_BASE}/settings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify(settings)
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok && result.success) {
+      alert('Settings saved successfully!');
+    } else {
+      alert('Error: ' + (result.error || 'Failed to save settings'));
+    }
+  } catch (error) {
+    console.error('Error saving settings:', error);
+    alert('Network error. Please try again.');
+  }
+}

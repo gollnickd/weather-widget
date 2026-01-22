@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login - Water Conditions Widget</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #0891B2 0%, #06A77D 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .login-container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      padding: 40px;
+      width: 100%;
+      max-width: 400px;
+    }
+    
+    .logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .logo h1 {
+      color: #0891B2;
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    
+    .logo p {
+      color: #6B7280;
+      font-size: 14px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-label {
+      display: block;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #E5E7EB;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: #0891B2;
+    }
+    
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #0891B2 0%, #06A77D 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(8, 145, 178, 0.4);
+    }
+    
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .alert {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    
+    .alert-error {
+      background: #FEE2E2;
+      color: #991B1B;
+      border: 1px solid #FCA5A5;
+    }
+    
+    .alert-success {
+      background: #D1FAE5;
+      color: #065F46;
+      border: 1px solid #6EE7B7;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      color: #9CA3AF;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <div class="logo">
+      <h1>🌊 Perfect Paddles</h1>
+      <p>Water Conditions Admin</p>
+    </div>
+    
+    <div id="alert" class="alert hidden"></div>
+    
+    <form id="login-form">
+      <div class="form-group">
+        <label class="form-label" for="username">Username</label>
+        <input 
+          type="text" 
+          class="form-input" 
+          id="username" 
+          name="username" 
+          required 
+          autocomplete="username"
+          autofocus
+        >
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label" for="password">Password</label>
+        <input 
+          type="password" 
+          class="form-input" 
+          id="password" 
+          name="password" 
+          required 
+          autocomplete="current-password"
+        >
+      </div>
+      
+      <button type="submit" class="btn btn-primary" id="login-btn">
+        Sign In
+      </button>
+    </form>
+    
+    <div class="footer">
+      <p>Default credentials: admin / admin123</p>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = `${window.location.protocol}//${window.location.host}/api/admin`;
+    
+    function showAlert(message, type = 'error') {
+      const alert = document.getElementById('alert');
+      alert.textContent = message;
+      alert.className = `alert alert-${type}`;
+      alert.classList.remove('hidden');
+      
+      if (type === 'success') {
+        setTimeout(() => {
+          alert.classList.add('hidden');
+        }, 3000);
+      }
+    }
+    
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const btn = document.getElementById('login-btn');
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+      
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+      
+      try {
+        const response = await fetch(`${API_BASE}/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ username, password })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          // Save token
+          localStorage.setItem('admin_token', data.token);
+          localStorage.setItem('admin_user', JSON.stringify(data.user));
+          
+          showAlert('Login successful! Redirecting...', 'success');
+          
+          // Redirect to dashboard
+          setTimeout(() => {
+            window.location.href = '/admin/';
+          }, 1000);
+        } else {
+          showAlert(data.error || 'Login failed');
+          btn.disabled = false;
+          btn.textContent = 'Sign In';
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        showAlert('Network error. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+      }
+    });
+    
+    // Check if already logged in
+    const token = localStorage.getItem('admin_token');
+    if (token) {
+      fetch(`${API_BASE}/verify`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.valid) {
+          window.location.href = '/admin/';
+        }
+      })
+      .catch(() => {
+        // Invalid token, stay on login page
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_user');
+      });
+    }
+  </script>
+</body>
+</html>

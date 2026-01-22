@@ -513,6 +513,253 @@ app.get('/api/admin/settings', async (req, res) => {
 });
 
 // ============================================
+// ADMIN AUTHENTICATION
+// ============================================
+
+const bcrypt = require('bcrypt');
+const crypto = require('crypto');
+
+// Helper: Generate session token
+function generateSessionToken() {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+// Helper: Verify session token
+async function verifySession(token) {
+  if (!token) return null;
+  
+  const connection = await pool.getConnection();
+  try {
+    const [sessions] = await connection.query(
+      `SELECT s.*, u.username, u.email, u.full_name 
+       FROM admin_sessions s
+       JOIN admin_users u ON u.id = s.admin_user_id
+       WHERE s.session_token = ? AND s.expires_at > NOW() AND u.is_active = TRUE`,
+      [token]
+    );
+    
+    return sessions.length > 0 ? sessions[0] : null;
+  } finally {
+    connection.release();
+  }
+}
+
+// Login endpoint
+app.post('/api/admin/login', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password required' });
+    }
+    
+    // Get user
+    const [users] = await connection.query(
+      'SELECT * FROM admin_users WHERE username = ? AND is_active = TRUE',
+      [username]
+    );
+    
+    if (users.length === 0) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    const user = users[0];
+    
+    // Verify password
+    const validPassword = await bcrypt.compare(password, user.password_hash);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    // Create session
+    const sessionToken = generateSessionToken();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+    
+    await connection.query(
+      `INSERT INTO admin_sessions (admin_user_id, session_token, expires_at, ip_address, user_agent)
+       VALUES (?, ?, ?, ?, ?)`,
+      [user.id, sessionToken, expiresAt, req.ip, req.get('user-agent')]
+    );
+    
+    // Update last login
+    await connection.query(
+      'UPDATE admin_users SET last_login = NOW() WHERE id = ?',
+      [user.id]
+    );
+    
+    res.json({
+      success: true,
+      token: sessionToken,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        full_name: user.full_name
+      }
+    });
+    
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Login failed' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Logout endpoint
+app.post('/api/admin/logout', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (token) {
+      await connection.query(
+        'DELETE FROM admin_sessions WHERE session_token = ?',
+        [token]
+      );
+    }
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({ error: 'Logout failed' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Verify session endpoint
+app.get('/api/admin/verify', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const session = await verifySession(token);
+    
+    if (!session) {
+      return res.status(401).json({ error: 'Invalid session' });
+    }
+    
+    res.json({
+      valid: true,
+      user: {
+        id: session.admin_user_id,
+        username: session.username,
+        email: session.email,
+        full_name: session.full_name
+      }
+    });
+  } catch (error) {
+    console.error('Verify error:', error);
+    res.status(500).json({ error: 'Verification failed' });
+  }
+});
+
+// ============================================
+// ADMIN CRUD OPERATIONS
+// ============================================
+
+// Add customer
+app.post('/api/admin/customers', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { company_name, website_url, contact_email, contact_name } = req.body;
+    
+    if (!company_name || !website_url || !contact_email) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    // Generate API key
+    const api_key = crypto.randomBytes(32).toString('hex');
+    
+    const [result] = await connection.query(
+      `INSERT INTO customers (company_name, website_url, contact_email, contact_name, api_key, is_active)
+       VALUES (?, ?, ?, ?, ?, TRUE)`,
+      [company_name, website_url, contact_email, contact_name || null, api_key]
+    );
+    
+    res.json({
+      success: true,
+      id: result.insertId,
+      api_key: api_key
+    });
+    
+  } catch (error) {
+    console.error('Add customer error:', error);
+    res.status(500).json({ error: 'Failed to add customer' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Add location
+app.post('/api/admin/locations', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const {
+      customer_id, location_name, water_body_name,
+      city, state, zip_code, latitude, longitude, timezone
+    } = req.body;
+    
+    if (!customer_id || !location_name || !latitude || !longitude) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    const [result] = await connection.query(
+      `INSERT INTO locations (
+        customer_id, location_name, water_body_name,
+        city, state, zip_code, latitude, longitude, timezone, is_active
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
+      [customer_id, location_name, water_body_name, city, state, zip_code, 
+       latitude, longitude, timezone || 'America/Los_Angeles']
+    );
+    
+    // Add to refresh schedule
+    await connection.query(
+      `INSERT INTO refresh_schedule (location_id, next_refresh_at, refresh_interval_minutes)
+       VALUES (?, NOW(), 10)`,
+      [result.insertId]
+    );
+    
+    res.json({
+      success: true,
+      id: result.insertId
+    });
+    
+  } catch (error) {
+    console.error('Add location error:', error);
+    res.status(500).json({ error: 'Failed to add location' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Update settings
+app.post('/api/admin/settings', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const settings = req.body;
+    
+    // Update each setting
+    for (const [key, value] of Object.entries(settings)) {
+      await connection.query(
+        `INSERT INTO system_config (config_key, config_value)
+         VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE config_value = ?`,
+        [key, value, value]
+      );
+    }
+    
+    res.json({ success: true });
+    
+  } catch (error) {
+    console.error('Update settings error:', error);
+    res.status(500).json({ error: 'Failed to update settings' });
+  } finally {
+    connection.release();
+  }
+});
+
+// ============================================
 // END ADMIN API ENDPOINTS
 // ============================================
 
