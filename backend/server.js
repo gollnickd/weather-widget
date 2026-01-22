@@ -114,13 +114,28 @@ async function fetchWeatherData(latitude, longitude) {
     
     const current = response.data.current;
     
-    // Get temperature - try Fahrenheit first, fallback to converting Celsius
-    let temperature = current.temp_f;
-    if (!temperature && current.temp_c) {
-      // Convert Celsius to Fahrenheit if temp_f is not available
+    // Always use Fahrenheit - WeatherAPI returns both temp_c and temp_f
+    // Prefer temp_f, but convert temp_c if temp_f is missing
+    let temperature;
+    if (current.temp_f !== null && current.temp_f !== undefined) {
+      temperature = current.temp_f;
+      console.log(`Using temp_f: ${temperature}°F for location ${latitude},${longitude}`);
+    } else if (current.temp_c !== null && current.temp_c !== undefined) {
       temperature = (current.temp_c * 9/5) + 32;
-      console.log(`Converted temperature from ${current.temp_c}°C to ${temperature}°F`);
+      console.log(`Converted temperature from ${current.temp_c}°C to ${temperature}°F for location ${latitude},${longitude}`);
+    } else {
+      console.error('No temperature data available from WeatherAPI');
+      temperature = 0;
     }
+    
+    // Log what we received from API for debugging
+    console.log(`Weather API response for ${latitude},${longitude}:`, {
+      temp_c: current.temp_c,
+      temp_f: current.temp_f,
+      using_temp: temperature,
+      wind_mph: current.wind_mph,
+      condition: current.condition.text
+    });
     
     return {
       windSpeed: current.wind_mph,
