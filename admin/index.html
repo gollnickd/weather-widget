@@ -680,7 +680,7 @@
         
         <div class="form-group">
           <label class="form-label">Water Body Name</label>
-          <input type="text" class="form-input" name="water_body_name" placeholder="e.g., Marina del Rey">
+          <input type="text" class="form-input" name="water_body_name" placeholder="e.g., Pacific Ocean">
         </div>
         
         <div class="form-group">
@@ -711,6 +711,79 @@
         <div style="display: flex; gap: 10px; justify-content: flex-end;">
           <button type="button" class="btn btn-secondary" onclick="closeModal('add-location')">Cancel</button>
           <button type="submit" class="btn btn-primary">Add Location</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Location Modal -->
+  <div id="edit-location-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Location</h3>
+        <button class="close-btn" onclick="closeModal('edit-location')">&times;</button>
+      </div>
+      
+      <form id="edit-location-form">
+        <input type="hidden" id="edit-location-id">
+        
+        <div class="form-group">
+          <label class="form-label">Customer *</label>
+          <select class="form-input" id="edit-location-customer" required>
+            <option value="">Select customer...</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Location Name *</label>
+          <input type="text" class="form-input" id="edit-location-name" required>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Water Body Name</label>
+          <input type="text" class="form-input" id="edit-water-body-name" placeholder="e.g., Pacific Ocean">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">City *</label>
+          <input type="text" class="form-input" id="edit-location-city" required>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">State</label>
+          <input type="text" class="form-input" id="edit-location-state" placeholder="e.g., California">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Zip Code</label>
+          <input type="text" class="form-input" id="edit-location-zip">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Latitude *</label>
+          <input type="number" step="any" class="form-input" id="edit-location-latitude" required>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Longitude *</label>
+          <input type="number" step="any" class="form-input" id="edit-location-longitude" required>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Timezone</label>
+          <input type="text" class="form-input" id="edit-location-timezone" placeholder="e.g., America/Los_Angeles">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" style="display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" id="edit-location-active" style="width: auto;">
+            <span>Active</span>
+          </label>
+        </div>
+        
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('edit-location')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
         </div>
       </form>
     </div>

@@ -105,13 +105,21 @@ async function loadLocations() {
     const tbody = document.querySelector('#locations-table tbody');
     tbody.innerHTML = locations.map(l => `
       <tr>
-        <td><strong>${l.location_name}</strong></td>
-        <td>${l.city}, ${l.state}</td>
+        <td><strong>${l.location_name}</strong><br><small>${l.water_body_name || ''}</small></td>
         <td>${l.company_name}</td>
-        <td>${l.condition_level || 'N/A'}</td>
-        <td>${l.wind_speed_mph || 'N/A'} mph</td>
-        <td>${l.temperature_f || 'N/A'}°F</td>
-        <td>${l.fetched_at ? new Date(l.fetched_at).toLocaleTimeString() : 'Never'}</td>
+        <td>${l.city}, ${l.state}</td>
+        <td>${l.latitude}, ${l.longitude}</td>
+        <td>
+          ${l.condition_level ? `<span style="color: ${l.condition_level === 'beginner' ? '#10B981' : l.condition_level === 'intermediate' ? '#F59E0B' : '#EF4444'}">${l.condition_level}</span><br>` : ''}
+          ${l.wind_speed_mph ? `${l.wind_speed_mph} mph, ${l.temperature_f}°F` : 'N/A'}
+        </td>
+        <td>${l.fetched_at ? new Date(l.fetched_at).toLocaleString() : 'Never'}</td>
+        <td>${l.is_active ? '✅ Active' : '❌ Inactive'}</td>
+        <td>
+          <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="editLocation(${l.id})">
+            ✏️ Edit
+          </button>
+        </td>
       </tr>
     `).join('');
   } catch (error) {
@@ -324,6 +332,52 @@ function setupFormHandlers() {
     });
   }
   
+  // Edit Location Form
+  const editLocationForm = document.getElementById('edit-location-form');
+  if (editLocationForm) {
+    editLocationForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const locationId = document.getElementById('edit-location-id').value;
+      const data = {
+        customer_id: document.getElementById('edit-location-customer').value,
+        location_name: document.getElementById('edit-location-name').value,
+        water_body_name: document.getElementById('edit-water-body-name').value,
+        city: document.getElementById('edit-location-city').value,
+        state: document.getElementById('edit-location-state').value,
+        zip_code: document.getElementById('edit-location-zip').value,
+        latitude: document.getElementById('edit-location-latitude').value,
+        longitude: document.getElementById('edit-location-longitude').value,
+        timezone: document.getElementById('edit-location-timezone').value,
+        is_active: document.getElementById('edit-location-active').checked
+      };
+      
+      try {
+        const response = await fetch(`${API_BASE}/locations/${locationId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+          alert('Location updated successfully!');
+          closeModal('edit-location');
+          loadLocations();
+        } else {
+          alert('Error: ' + (result.error || 'Failed to update location'));
+        }
+      } catch (error) {
+        console.error('Error updating location:', error);
+        alert('Network error. Please try again.');
+      }
+    });
+  }
+  
   // Settings Form
   const settingsForm = document.getElementById('settings-form');
   if (settingsForm) {
@@ -475,6 +529,59 @@ async function editCustomer(customerId) {
   } catch (error) {
     console.error('Error loading customer:', error);
     alert('Failed to load customer details');
+  }
+}
+
+// Edit location function
+async function editLocation(locationId) {
+  try {
+    // Fetch location details
+    const response = await fetch(`${API_BASE}/locations`);
+    const locations = await response.json();
+    const location = locations.find(l => l.id === locationId);
+    
+    if (!location) {
+      alert('Location not found');
+      return;
+    }
+    
+    // Load customers for dropdown
+    await loadCustomersForEditLocation();
+    
+    // Populate edit form
+    document.getElementById('edit-location-id').value = location.id;
+    document.getElementById('edit-location-customer').value = location.customer_id;
+    document.getElementById('edit-location-name').value = location.location_name;
+    document.getElementById('edit-water-body-name').value = location.water_body_name || '';
+    document.getElementById('edit-location-city').value = location.city || '';
+    document.getElementById('edit-location-state').value = location.state || '';
+    document.getElementById('edit-location-zip').value = location.zip_code || '';
+    document.getElementById('edit-location-latitude').value = location.latitude;
+    document.getElementById('edit-location-longitude').value = location.longitude;
+    document.getElementById('edit-location-timezone').value = location.timezone || 'America/Los_Angeles';
+    document.getElementById('edit-location-active').checked = location.is_active;
+    
+    // Show modal
+    openModal('edit-location');
+  } catch (error) {
+    console.error('Error loading location:', error);
+    alert('Failed to load location details');
+  }
+}
+
+// Load customers for edit location dropdown
+async function loadCustomersForEditLocation() {
+  try {
+    const response = await fetch(`${API_BASE}/customers`);
+    const customers = await response.json();
+    
+    const select = document.getElementById('edit-location-customer');
+    if (select) {
+      select.innerHTML = '<option value="">Select customer...</option>' +
+        customers.map(c => `<option value="${c.id}">${c.company_name}</option>`).join('');
+    }
+  } catch (error) {
+    console.error('Error loading customers for select:', error);
   }
 }
 

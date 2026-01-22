@@ -417,7 +417,7 @@ app.get('/api/admin/customers', async (req, res) => {
   const connection = await pool.getConnection();
   try {
     const [customers] = await connection.query(
-      `SELECT id, company_name, website_url, contact_email, api_key, is_active, created_at 
+      `SELECT id, company_name, website_url, contact_email, contact_name, api_key, is_active, created_at 
        FROM customers 
        ORDER BY created_at DESC`
     );
@@ -963,6 +963,48 @@ app.post('/api/admin/locations', async (req, res) => {
   } catch (error) {
     console.error('Add location error:', error);
     res.status(500).json({ error: 'Failed to add location' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Update location
+app.put('/api/admin/locations/:id', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const locationId = req.params.id;
+    const {
+      customer_id, location_name, water_body_name,
+      city, state, zip_code, latitude, longitude, timezone, is_active
+    } = req.body;
+    
+    if (!customer_id || !location_name || !latitude || !longitude) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    const [result] = await connection.query(
+      `UPDATE locations 
+       SET customer_id = ?, location_name = ?, water_body_name = ?,
+           city = ?, state = ?, zip_code = ?, latitude = ?, longitude = ?,
+           timezone = ?, is_active = ?
+       WHERE id = ?`,
+      [customer_id, location_name, water_body_name || null, city || null, 
+       state || null, zip_code || null, latitude, longitude, 
+       timezone || 'America/Los_Angeles', is_active ? 1 : 0, locationId]
+    );
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Location not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Location updated successfully'
+    });
+    
+  } catch (error) {
+    console.error('Update location error:', error);
+    res.status(500).json({ error: 'Failed to update location' });
   } finally {
     connection.release();
   }
