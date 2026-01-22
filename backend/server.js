@@ -819,6 +819,113 @@ app.post('/api/admin/customers', async (req, res) => {
   }
 });
 
+// Update customer
+app.put('/api/admin/customers/:id', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const customerId = req.params.id;
+    const { company_name, website_url, contact_email, contact_name, is_active } = req.body;
+    
+    if (!company_name) {
+      return res.status(400).json({ error: 'Company name is required' });
+    }
+    
+    const [result] = await connection.query(
+      `UPDATE customers 
+       SET company_name = ?, website_url = ?, contact_email = ?, contact_name = ?, is_active = ?
+       WHERE id = ?`,
+      [company_name, website_url || null, contact_email || null, contact_name || null, is_active ? 1 : 0, customerId]
+    );
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Customer not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Customer updated successfully'
+    });
+    
+  } catch (error) {
+    console.error('Update customer error:', error);
+    res.status(500).json({ error: 'Failed to update customer' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Change password endpoint
+app.post('/api/admin/change-password', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    const { current_password, new_password, confirm_password } = req.body;
+    
+    // Validate input
+    if (!current_password || !new_password || !confirm_password) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+    
+    if (new_password !== confirm_password) {
+      return res.status(400).json({ error: 'New passwords do not match' });
+    }
+    
+    if (new_password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+    
+    // Verify session and get user
+    const session = await verifySession(token);
+    if (!session) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    // Get current user
+    const [users] = await connection.query(
+      'SELECT * FROM admin_users WHERE id = ?',
+      [session.admin_user_id]
+    );
+    
+    if (users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    const user = users[0];
+    
+    // Verify current password
+    const validPassword = await bcrypt.compare(current_password, user.password_hash);
+    if (!validPassword) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+    
+    // Hash new password
+    const newPasswordHash = await bcrypt.hash(new_password, 10);
+    
+    // Update password
+    await connection.query(
+      'UPDATE admin_users SET password_hash = ?, updated_at = NOW() WHERE id = ?',
+      [newPasswordHash, user.id]
+    );
+    
+    // Invalidate all other sessions (keep current)
+    await connection.query(
+      'DELETE FROM admin_sessions WHERE admin_user_id = ? AND session_token != ?',
+      [user.id, token]
+    );
+    
+    res.json({
+      success: true,
+      message: 'Password changed successfully. Other sessions have been logged out.'
+    });
+    
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ error: 'Failed to change password' });
+  } finally {
+    connection.release();
+  }
+});
+
 // Add location
 app.post('/api/admin/locations', async (req, res) => {
   const connection = await pool.getConnection();

@@ -361,9 +361,14 @@
         <h1>🌊 Water Conditions Widget - Admin Dashboard</h1>
         <p>Perfect Paddles | Manage customers, locations, and weather data</p>
       </div>
-      <button onclick="logout()" class="btn btn-secondary" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);">
-        Logout
-      </button>
+      <div style="display: flex; gap: 10px;">
+        <button onclick="openModal('change-password')" class="btn btn-secondary" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);">
+          🔒 Change Password
+        </button>
+        <button onclick="logout()" class="btn btn-secondary" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.3);">
+          Logout
+        </button>
+      </div>
     </div>
   </div>
   
@@ -606,6 +611,52 @@
     </div>
   </div>
   
+  <!-- Edit Customer Modal -->
+  <div id="edit-customer-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Customer</h3>
+        <button class="close-btn" onclick="closeModal('edit-customer')">&times;</button>
+      </div>
+      
+      <form id="edit-customer-form">
+        <input type="hidden" id="edit-customer-id">
+        
+        <div class="form-group">
+          <label class="form-label">Company Name *</label>
+          <input type="text" class="form-input" id="edit-company-name" required>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Website URL</label>
+          <input type="url" class="form-input" id="edit-website-url">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Contact Email</label>
+          <input type="email" class="form-input" id="edit-contact-email">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Contact Name</label>
+          <input type="text" class="form-input" id="edit-contact-name">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" style="display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" id="edit-is-active" style="width: auto;">
+            <span>Active</span>
+          </label>
+        </div>
+        
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('edit-customer')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
   <!-- Add Location Modal -->
   <div id="add-location-modal" class="modal">
     <div class="modal-content">
@@ -660,6 +711,50 @@
         <div style="display: flex; gap: 10px; justify-content: flex-end;">
           <button type="button" class="btn btn-secondary" onclick="closeModal('add-location')">Cancel</button>
           <button type="submit" class="btn btn-primary">Add Location</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Change Password Modal -->
+  <div id="change-password-modal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title">🔒 Change Password</h3>
+        <button class="close-btn" onclick="closeModal('change-password')">&times;</button>
+      </div>
+      
+      <div id="password-alert" style="display: none; margin-bottom: 15px;"></div>
+      
+      <form id="change-password-form">
+        <div class="form-group">
+          <label class="form-label">Current Password *</label>
+          <input type="password" class="form-input" id="current-password" required autocomplete="current-password">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">New Password *</label>
+          <input type="password" class="form-input" id="new-password" required autocomplete="new-password" minlength="8">
+          <small style="color: #6B7280; font-size: 12px; display: block; margin-top: 5px;">
+            Minimum 8 characters
+          </small>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Confirm New Password *</label>
+          <input type="password" class="form-input" id="confirm-password" required autocomplete="new-password" minlength="8">
+        </div>
+        
+        <div style="background: #FEF3C7; border: 1px solid #FCD34D; padding: 12px; border-radius: 6px; margin-bottom: 20px;">
+          <strong style="color: #92400E; font-size: 13px;">⚠️ Security Notice:</strong>
+          <p style="color: #92400E; font-size: 12px; margin-top: 5px; line-height: 1.5;">
+            Changing your password will log out all other active sessions for security.
+          </p>
+        </div>
+        
+        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('change-password')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Change Password</button>
         </div>
       </form>
     </div>

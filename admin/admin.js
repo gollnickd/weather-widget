@@ -81,8 +81,12 @@ async function loadCustomers() {
         <td>${c.contact_email || 'N/A'}</td>
         <td><code style="font-size: 10px;">${c.api_key}</code></td>
         <td>-</td>
-        <td>${c.is_active ? 'Active' : 'Inactive'}</td>
-        <td>-</td>
+        <td>${c.is_active ? '✅ Active' : '❌ Inactive'}</td>
+        <td>
+          <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="editCustomer(${c.id})">
+            ✏️ Edit
+          </button>
+        </td>
       </tr>
     `).join('');
   } catch (error) {
@@ -164,8 +168,22 @@ async function loadSettings() {
     const settings = await response.json();
     console.log('Settings:', settings);
     
-    // Display settings in form
-    // This would populate form fields if you have them
+    // Populate form fields
+    if (settings.beginner_wind_max_mph) {
+      document.getElementById('beginner-wind').value = settings.beginner_wind_max_mph;
+    }
+    if (settings.intermediate_wind_max_mph) {
+      document.getElementById('intermediate-wind').value = settings.intermediate_wind_max_mph;
+    }
+    if (settings.weather_api_key) {
+      document.getElementById('weather-api-key').value = settings.weather_api_key;
+    }
+    if (settings.refresh_interval_minutes) {
+      document.getElementById('refresh-interval').value = settings.refresh_interval_minutes;
+    }
+    if (settings.cache_expiry_minutes) {
+      document.getElementById('cache-expiry').value = settings.cache_expiry_minutes;
+    }
   } catch (error) {
     console.error('Error loading settings:', error);
   }
@@ -229,6 +247,47 @@ function setupFormHandlers() {
     });
   }
   
+  // Edit Customer Form
+  const editCustomerForm = document.getElementById('edit-customer-form');
+  if (editCustomerForm) {
+    editCustomerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const customerId = document.getElementById('edit-customer-id').value;
+      const data = {
+        company_name: document.getElementById('edit-company-name').value,
+        website_url: document.getElementById('edit-website-url').value,
+        contact_email: document.getElementById('edit-contact-email').value,
+        contact_name: document.getElementById('edit-contact-name').value,
+        is_active: document.getElementById('edit-is-active').checked
+      };
+      
+      try {
+        const response = await fetch(`${API_BASE}/customers/${customerId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+          alert('Customer updated successfully!');
+          closeModal('edit-customer');
+          loadCustomers();
+        } else {
+          alert('Error: ' + (result.error || 'Failed to update customer'));
+        }
+      } catch (error) {
+        console.error('Error updating customer:', error);
+        alert('Network error. Please try again.');
+      }
+    });
+  }
+  
   // Add Location Form
   const locationForm = document.getElementById('add-location-form');
   if (locationForm) {
@@ -270,37 +329,92 @@ function setupFormHandlers() {
   if (settingsForm) {
     settingsForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      saveSettings();
+    });
+  }
+  
+  // Change Password Form
+  const changePasswordForm = document.getElementById('change-password-form');
+  if (changePasswordForm) {
+    changePasswordForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
       
-      const beginnerWind = document.getElementById('beginner-wind').value;
-      const intermediateWind = document.getElementById('intermediate-wind').value;
+      const currentPassword = document.getElementById('current-password').value;
+      const newPassword = document.getElementById('new-password').value;
+      const confirmPassword = document.getElementById('confirm-password').value;
       
-      const settings = {
-        'beginner_wind_max_mph': beginnerWind,
-        'intermediate_wind_max_mph': intermediateWind
-      };
+      // Client-side validation
+      if (newPassword !== confirmPassword) {
+        showPasswordAlert('New passwords do not match', 'error');
+        return;
+      }
+      
+      if (newPassword.length < 8) {
+        showPasswordAlert('Password must be at least 8 characters', 'error');
+        return;
+      }
+      
+      if (newPassword === currentPassword) {
+        showPasswordAlert('New password must be different from current password', 'error');
+        return;
+      }
       
       try {
-        const response = await fetch(`${API_BASE}/settings`, {
+        const response = await fetch(`${API_BASE}/change-password`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${authToken}`
           },
-          body: JSON.stringify(settings)
+          body: JSON.stringify({
+            current_password: currentPassword,
+            new_password: newPassword,
+            confirm_password: confirmPassword
+          })
         });
         
         const result = await response.json();
         
         if (response.ok && result.success) {
-          alert('Settings saved successfully!');
+          showPasswordAlert(result.message, 'success');
+          changePasswordForm.reset();
+          setTimeout(() => {
+            closeModal('change-password');
+          }, 2000);
         } else {
-          alert('Error: ' + (result.error || 'Failed to save settings'));
+          showPasswordAlert(result.error || 'Failed to change password', 'error');
         }
       } catch (error) {
-        console.error('Error saving settings:', error);
-        alert('Network error. Please try again.');
+        console.error('Error changing password:', error);
+        showPasswordAlert('Network error. Please try again.', 'error');
       }
     });
+  }
+}
+
+// Show alert in password modal
+function showPasswordAlert(message, type = 'error') {
+  const alert = document.getElementById('password-alert');
+  alert.style.display = 'block';
+  alert.style.padding = '12px';
+  alert.style.borderRadius = '6px';
+  alert.style.marginBottom = '15px';
+  alert.textContent = message;
+  
+  if (type === 'error') {
+    alert.style.background = '#FEE2E2';
+    alert.style.color = '#991B1B';
+    alert.style.border = '1px solid #FCA5A5';
+  } else {
+    alert.style.background = '#D1FAE5';
+    alert.style.color = '#065F46';
+    alert.style.border = '1px solid #6EE7B7';
+  }
+  
+  if (type === 'success') {
+    setTimeout(() => {
+      alert.style.display = 'none';
+    }, 3000);
   }
 }
 
@@ -335,14 +449,49 @@ function logout() {
   }
 }
 
+// Edit customer function
+async function editCustomer(customerId) {
+  try {
+    // Fetch customer details
+    const response = await fetch(`${API_BASE}/customers`);
+    const customers = await response.json();
+    const customer = customers.find(c => c.id === customerId);
+    
+    if (!customer) {
+      alert('Customer not found');
+      return;
+    }
+    
+    // Populate edit form
+    document.getElementById('edit-customer-id').value = customer.id;
+    document.getElementById('edit-company-name').value = customer.company_name;
+    document.getElementById('edit-website-url').value = customer.website_url || '';
+    document.getElementById('edit-contact-email').value = customer.contact_email || '';
+    document.getElementById('edit-contact-name').value = customer.contact_name || '';
+    document.getElementById('edit-is-active').checked = customer.is_active;
+    
+    // Show modal
+    openModal('edit-customer');
+  } catch (error) {
+    console.error('Error loading customer:', error);
+    alert('Failed to load customer details');
+  }
+}
+
 // Save settings (alternative to form submit)
 async function saveSettings() {
   const beginnerWind = document.getElementById('beginner-wind').value;
   const intermediateWind = document.getElementById('intermediate-wind').value;
+  const weatherApiKey = document.getElementById('weather-api-key').value;
+  const refreshInterval = document.getElementById('refresh-interval').value;
+  const cacheExpiry = document.getElementById('cache-expiry').value;
   
   const settings = {
     'beginner_wind_max_mph': beginnerWind,
-    'intermediate_wind_max_mph': intermediateWind
+    'intermediate_wind_max_mph': intermediateWind,
+    'weather_api_key': weatherApiKey,
+    'refresh_interval_minutes': refreshInterval,
+    'cache_expiry_minutes': cacheExpiry
   };
   
   try {
