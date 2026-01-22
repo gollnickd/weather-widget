@@ -285,6 +285,31 @@
         advanced: '🌊🌊🌊'
       }[conditions.level] || '🌊';
       
+      // Water-themed SVG icons for each condition level
+      const conditionIcon = {
+        beginner: `<svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Calm water with paddle -->
+          <path d="M3 12c0 0 2-3 5-3s5 3 5 3 2-3 5-3 6 3 6 3"/>
+          <circle cx="12" cy="8" r="2" fill="white"/>
+          <path d="M12 10v8"/>
+          <path d="M9 18h6"/>
+        </svg>`,
+        intermediate: `<svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Moderate waves -->
+          <path d="M2 12c0 0 2-4 4-4s4 4 4 4 2-4 4-4 4 4 4 4 2-4 4-4"/>
+          <path d="M2 16c0 0 2-3 4-3s4 3 4 3 2-3 4-3 4 3 4 3 2-3 4-3"/>
+          <path d="M14 6l2-2m0 0l2 2m-2-2v4"/>
+        </svg>`,
+        advanced: `<svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <!-- Strong waves with wind -->
+          <path d="M2 10c0 0 2-5 4-5s4 5 4 5 2-5 4-5 4 5 4 5 2-5 4-5"/>
+          <path d="M2 15c0 0 2-4 4-4s4 4 4 4 2-4 4-4 4 4 4 4"/>
+          <path d="M2 20c0 0 2-3 4-3s4 3 4 3 2-3 4-3 4 3 4 3"/>
+          <path d="M16 4l3-2m0 0l2 2m-2-2l-2 2"/>
+          <path d="M18 8l3-2m0 0l2 2m-2-2l-2 2"/>
+        </svg>`
+      }[conditions.level] || conditionIcon.beginner;
+      
       container.innerHTML = `
         <div class="pp-water-widget">
           <div class="pp-widget-header">
@@ -296,10 +321,7 @@
           
           <div class="pp-condition-indicator">
             <div class="pp-condition-circle" style="background-color: ${conditions.color};">
-              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                <path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>
-              </svg>
+              ${conditionIcon}
             </div>
             <div class="pp-condition-level">${conditions.level} Friendly</div>
             <p class="pp-condition-description">${conditions.description}</p>
