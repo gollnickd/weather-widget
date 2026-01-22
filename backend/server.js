@@ -584,6 +584,94 @@ app.get('/api/admin/setup', async (req, res) => {
   }
 });
 
+// Debug endpoint - check if user exists and bcrypt is working
+app.get('/api/admin/debug', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    // Check if bcrypt is available
+    let bcryptAvailable = false;
+    let bcryptTest = null;
+    try {
+      const testHash = await bcrypt.hash('admin123', 10);
+      const testVerify = await bcrypt.compare('admin123', testHash);
+      bcryptAvailable = true;
+      bcryptTest = { hash: testHash, verify: testVerify };
+    } catch (e) {
+      bcryptAvailable = false;
+      bcryptTest = { error: e.message };
+    }
+    
+    // Check admin users
+    const [users] = await connection.query('SELECT id, username, password_hash, email, is_active, created_at FROM admin_users');
+    
+    // Test password against existing hash
+    let passwordTests = [];
+    for (const user of users) {
+      try {
+        const matches = await bcrypt.compare('admin123', user.password_hash);
+        passwordTests.push({
+          username: user.username,
+          hash_starts_with: user.password_hash.substring(0, 20) + '...',
+          password_admin123_matches: matches
+        });
+      } catch (e) {
+        passwordTests.push({
+          username: user.username,
+          error: e.message
+        });
+      }
+    }
+    
+    res.json({
+      bcrypt_available: bcryptAvailable,
+      bcrypt_test: bcryptTest,
+      admin_users_count: users.length,
+      password_tests: passwordTests,
+      note: 'If password_admin123_matches is false, the hash is wrong'
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  } finally {
+    connection.release();
+  }
+});
+
+// Fix endpoint - regenerate hash and update user
+app.get('/api/admin/fix-password', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    // Generate correct hash
+    const password = 'admin123';
+    const correctHash = await bcrypt.hash(password, 10);
+    
+    // Update admin user
+    const [result] = await connection.query(
+      'UPDATE admin_users SET password_hash = ? WHERE username = ?',
+      [correctHash, 'admin']
+    );
+    
+    // Test it
+    const [users] = await connection.query('SELECT password_hash FROM admin_users WHERE username = ?', ['admin']);
+    const testMatch = await bcrypt.compare(password, users[0].password_hash);
+    
+    res.json({
+      success: true,
+      message: 'Password hash updated successfully!',
+      rows_affected: result.affectedRows,
+      password: password,
+      test_match: testMatch,
+      instruction: 'Now try logging in with admin/admin123'
+    });
+    
+  } catch (error) {
+    console.error('Fix password error:', error);
+    res.status(500).json({ error: 'Failed to fix password: ' + error.message });
+  } finally {
+    connection.release();
+  }
+});
+
 // Login endpoint
 app.post('/api/admin/login', async (req, res) => {
   const connection = await pool.getConnection();
