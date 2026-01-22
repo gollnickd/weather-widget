@@ -199,6 +199,11 @@ async function refreshAllNow() {
   }
 }
 
+// Alias for Refresh Schedule tab button
+async function refreshAllLocations() {
+  return refreshAllNow();
+}
+
 async function loadApiLogs() {
   try {
     const response = await fetch(`${API_BASE}/logs`);

@@ -511,7 +511,15 @@ app.get('/api/admin/locations', async (req, res) => {
       `SELECT l.*, c.company_name, wd.condition_level, wd.wind_speed_mph, wd.temperature_f, wd.fetched_at
        FROM locations l
        JOIN customers c ON c.id = l.customer_id
-       LEFT JOIN weather_data wd ON wd.location_id = l.id
+       LEFT JOIN (
+         SELECT location_id, condition_level, wind_speed_mph, temperature_f, fetched_at
+         FROM weather_data wd1
+         WHERE fetched_at = (
+           SELECT MAX(fetched_at) 
+           FROM weather_data wd2 
+           WHERE wd2.location_id = wd1.location_id
+         )
+       ) wd ON wd.location_id = l.id
        ORDER BY l.created_at DESC`
     );
     res.json(locations);

@@ -576,49 +576,113 @@
       <div class="card">
         <div class="card-header">
           <h2 class="card-title">System Configuration</h2>
+          <p style="color: #6B7280; font-size: 14px; margin-top: 5px;">
+            Configure weather API, refresh intervals, and condition thresholds
+          </p>
         </div>
         
         <div id="settings-alert"></div>
         
         <form id="settings-form" onsubmit="event.preventDefault(); saveSettings();">
-          <div class="form-group">
-            <label class="form-label">Weather API Key</label>
-            <input type="text" class="form-input" id="weather-api-key" placeholder="Enter WeatherAPI.com key">
+          
+          <!-- API Configuration Section -->
+          <div style="background: #F9FAFB; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h3 style="color: #111827; font-size: 16px; font-weight: 600; margin-bottom: 15px; border-bottom: 2px solid #E5E7EB; padding-bottom: 10px;">
+              🔑 API Configuration
+            </h3>
+            
+            <div class="form-group">
+              <label class="form-label">Weather API Key</label>
+              <input type="text" class="form-input" id="weather-api-key" placeholder="Enter WeatherAPI.com key">
+              <small style="color: #6B7280; font-size: 12px; display: block; margin-top: 5px;">
+                Get your free API key from <a href="https://www.weatherapi.com" target="_blank" style="color: #0891B2;">weatherapi.com</a>
+              </small>
+            </div>
           </div>
           
-          <div class="form-group">
-            <label class="form-label">Weather Data Pull Frequency (minutes)</label>
-            <input type="number" class="form-input" id="refresh-interval" value="60" min="1">
-            <small style="color: #6B7280; font-size: 12px; display: block; margin-top: 5px;">
-              How often to pull fresh weather data from WeatherAPI.com (default: 60 minutes = 1 hour)
-            </small>
+          <!-- Refresh Intervals Section -->
+          <div style="background: #F0F9FF; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h3 style="color: #111827; font-size: 16px; font-weight: 600; margin-bottom: 15px; border-bottom: 2px solid #BAE6FD; padding-bottom: 10px;">
+              🔄 Refresh Intervals
+            </h3>
+            
+            <div class="form-group">
+              <label class="form-label">Weather Data Pull Frequency</label>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="number" class="form-input" id="refresh-interval" value="60" min="1" style="flex: 0 0 120px;">
+                <span style="color: #6B7280;">minutes</span>
+              </div>
+              <small style="color: #6B7280; font-size: 12px; display: block; margin-top: 5px;">
+                ⏱️ How often YOUR backend pulls fresh weather from WeatherAPI.com<br>
+                💡 Recommended: 60 minutes (balances freshness with API costs)
+              </small>
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label">Location Data Pull Frequency</label>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="number" class="form-input" id="location-refresh-interval" value="10" min="1" style="flex: 0 0 120px;">
+                <span style="color: #6B7280;">minutes</span>
+              </div>
+              <small style="color: #6B7280; font-size: 12px; display: block; margin-top: 5px;">
+                ⏱️ How often customer widgets refresh from YOUR API<br>
+                💡 Recommended: 10 minutes (keeps widgets updated without excess load)
+              </small>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Cache Expiry Time</label>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="number" class="form-input" id="cache-expiry" value="15" min="1" style="flex: 0 0 120px;">
+                <span style="color: #6B7280;">minutes</span>
+              </div>
+              <small style="color: #6B7280; font-size: 12px; display: block; margin-top: 5px;">
+                ⏱️ How long cached data stays valid<br>
+                💡 Should be longer than Location Pull Frequency
+              </small>
+            </div>
           </div>
           
-          <div class="form-group">
-            <label class="form-label">Location Data Pull Frequency (minutes)</label>
-            <input type="number" class="form-input" id="location-refresh-interval" value="10" min="1">
-            <small style="color: #6B7280; font-size: 12px; display: block; margin-top: 5px;">
-              How often locations fetch data from Perfect Paddles API (default: 10 minutes)
-            </small>
+          <!-- Condition Thresholds Section -->
+          <div style="background: #F0FDF4; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+            <h3 style="color: #111827; font-size: 16px; font-weight: 600; margin-bottom: 15px; border-bottom: 2px solid #BBF7D0; padding-bottom: 10px;">
+              🌊 Water Condition Thresholds
+            </h3>
+            
+            <div class="form-group">
+              <label class="form-label">Beginner Wind Max</label>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="number" class="form-input" id="beginner-wind" value="10" min="0" max="50" style="flex: 0 0 120px;">
+                <span style="color: #6B7280;">mph</span>
+              </div>
+              <small style="color: #6B7280; font-size: 12px; display: block; margin-top: 5px;">
+                🟢 Wind speed below this = <strong>BEGINNER</strong> friendly conditions<br>
+                💡 Recommended: 10 mph (calm, smooth water)
+              </small>
+            </div>
+            
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">Intermediate Wind Max</label>
+              <div style="display: flex; gap: 10px; align-items: center;">
+                <input type="number" class="form-input" id="intermediate-wind" value="18" min="0" max="50" style="flex: 0 0 120px;">
+                <span style="color: #6B7280;">mph</span>
+              </div>
+              <small style="color: #6B7280; font-size: 12px; display: block; margin-top: 5px;">
+                🟡 Wind speed below this = <strong>INTERMEDIATE</strong> (above beginner = intermediate)<br>
+                🔴 Wind speed above this = <strong>ADVANCED</strong> (challenging conditions)<br>
+                💡 Recommended: 18 mph (moderate waves)
+              </small>
+            </div>
           </div>
           
-          <div class="form-group">
-            <label class="form-label">Cache Expiry Time (minutes)</label>
-            <input type="number" class="form-input" id="cache-expiry" value="15">
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">Beginner Wind Max (mph)</label>
-            <input type="number" class="form-input" id="beginner-wind" value="10">
-          </div>
-          
-          <div class="form-group">
-            <label class="form-label">Intermediate Wind Max (mph)</label>
-            <input type="number" class="form-input" id="intermediate-wind" value="18">
-          </div>
-          
-          <div style="display: flex; justify-content: flex-end; margin-top: 20px;">
-            <button type="submit" class="btn btn-primary">💾 Save Settings</button>
+          <!-- Save Button -->
+          <div style="display: flex; justify-content: flex-end; gap: 10px; padding-top: 10px; border-top: 2px solid #E5E7EB;">
+            <button type="button" class="btn btn-secondary" onclick="loadSettings()">
+              ↻ Reset to Saved
+            </button>
+            <button type="submit" class="btn btn-primary" style="min-width: 150px;">
+              💾 Save All Settings
+            </button>
           </div>
         </form>
       </div>
