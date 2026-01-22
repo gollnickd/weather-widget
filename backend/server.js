@@ -326,7 +326,6 @@ app.get('/api/widget/conditions/:apiKey', async (req, res) => {
          l.latitude,
          l.longitude,
          l.timezone,
-         c.id as customer_id, 
          c.company_name,
          wd.id as weather_data_id,
          wd.wind_speed_mph,
@@ -378,7 +377,7 @@ app.get('/api/widget/conditions/:apiKey', async (req, res) => {
       location.wave_height_ft
     );
     
-    const response = {
+    const responseData = {
       location: {
         name: location.location_name,
         waterBody: location.water_body_name,
