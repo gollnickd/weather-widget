@@ -112,7 +112,7 @@ async function loadLocations() {
         <td>${l.latitude}, ${l.longitude}</td>
         <td>
           ${l.condition_level ? `<span style="color: ${l.condition_level === 'beginner' ? '#10B981' : l.condition_level === 'intermediate' ? '#F59E0B' : '#EF4444'}">${l.condition_level}</span><br>` : ''}
-          ${l.wind_speed_mph ? `${l.wind_speed_mph} mph, ${l.temperature_f}°F` : 'N/A'}
+          ${l.wind_speed_mph ? `${l.wind_speed_mph} mph, ${l.temp_fahrenheit}°F` : 'N/A'}
         </td>
         <td>${l.fetched_at ? new Date(l.fetched_at).toLocaleString() : 'Never'}</td>
         <td>${l.is_active ? '✅ Active' : '❌ Inactive'}</td>
@@ -146,7 +146,8 @@ async function loadWeatherData() {
             ${w.condition_level ? w.condition_level.toUpperCase() : 'N/A'}
           </span>
         </td>
-        <td>${w.temperature_f ? Math.round(w.temperature_f) + '°F' : 'N/A'}</td>
+        <td>${w.temp_celsius != null ? Math.round(w.temp_celsius) + '°C' : 'N/A'}</td>
+        <td>${w.temp_fahrenheit != null ? Math.round(w.temp_fahrenheit) + '°F' : 'N/A'}</td>
         <td>${w.wind_speed_mph ? Math.round(w.wind_speed_mph) + ' mph' : 'N/A'}</td>
         <td>${w.wind_direction || 'N/A'}</td>
         <td>${w.weather_condition || 'N/A'}</td>
@@ -159,7 +160,7 @@ async function loadWeatherData() {
   } catch (error) {
     console.error('Error loading weather data:', error);
     document.querySelector('#weather-data-table tbody').innerHTML = 
-      `<tr><td colspan="10">Error: ${error.message}</td></tr>`;
+      `<tr><td colspan="11">Error: ${error.message}</td></tr>`;
   }
 }
 

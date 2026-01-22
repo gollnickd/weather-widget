@@ -191,9 +191,9 @@ async function updateLocationWeather(locationId) {
     await connection.query(
       `INSERT INTO weather_data 
        (location_id, wind_speed_mph, wind_gust_mph, wind_direction_degrees, wind_direction,
-        wave_height_ft, temperature_f, temp_celsius, temp_fahrenheit, conditions_text, condition_level, 
+        wave_height_ft, temp_celsius, temp_fahrenheit, conditions_text, condition_level, 
         cloud_cover, humidity, weather_condition, raw_data, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         locationId,
         weatherData.windSpeed,
@@ -201,7 +201,6 @@ async function updateLocationWeather(locationId) {
         weatherData.windDirection,
         getWindDirectionText(weatherData.windDirection),
         weatherData.waveHeight,
-        weatherData.tempFahrenheit, // Store F in temperature_f for backward compatibility
         weatherData.tempCelsius,    // Store original C from API
         weatherData.tempFahrenheit, // Store original F from API
         weatherData.conditionsText,
@@ -314,7 +313,6 @@ app.get('/api/widget/conditions/:apiKey', async (req, res) => {
          wd.wind_gust_mph,
          wd.wind_direction_degrees,
          wd.wave_height_ft,
-         wd.temperature_f,
          wd.temp_celsius,
          wd.temp_fahrenheit,
          wd.conditions_text,
@@ -374,8 +372,7 @@ app.get('/api/widget/conditions/:apiKey', async (req, res) => {
         description: condition.description,
         windSpeed: Math.round(location.wind_speed_mph || 0),
         gustSpeed: Math.round(location.wind_gust_mph || 0),
-        // Use temp_fahrenheit if available, fallback to temperature_f
-        temperature: Math.round(location.temp_fahrenheit || location.temperature_f || 0),
+        temperature: Math.round(location.temp_fahrenheit || 0),
         weatherText: location.conditions_text
       },
       lastUpdated: location.fetched_at
@@ -492,11 +489,11 @@ app.get('/api/admin/locations', async (req, res) => {
   const connection = await pool.getConnection();
   try {
     const [locations] = await connection.query(
-      `SELECT l.*, c.company_name, wd.condition_level, wd.wind_speed_mph, wd.temperature_f, wd.fetched_at
+      `SELECT l.*, c.company_name, wd.condition_level, wd.wind_speed_mph, wd.temp_fahrenheit, wd.fetched_at
        FROM locations l
        JOIN customers c ON c.id = l.customer_id
        LEFT JOIN (
-         SELECT location_id, condition_level, wind_speed_mph, temperature_f, fetched_at
+         SELECT location_id, condition_level, wind_speed_mph, temp_fahrenheit, fetched_at
          FROM weather_data wd1
          WHERE fetched_at = (
            SELECT MAX(fetched_at) 
