@@ -153,7 +153,7 @@ async function loadWeatherData() {
         <td>${w.cloud_cover != null ? w.cloud_cover + '%' : 'N/A'}</td>
         <td>${w.humidity != null ? w.humidity + '%' : 'N/A'}</td>
         <td style="font-size: 12px;">${w.fetched_at ? new Date(w.fetched_at).toLocaleString() : 'Never'}</td>
-        <td style="font-size: 12px;">${w.last_customer_view ? new Date(w.last_customer_view).toLocaleString() : 'Never viewed'}</td>
+        <td style="font-size: 12px;">${w.last_customer_view ? new Date(w.last_customer_view).toLocaleString() : 'Never fetched'}</td>
       </tr>
     `).join('');
   } catch (error) {
@@ -260,6 +260,9 @@ async function loadSettings() {
     }
     if (settings.refresh_interval_minutes) {
       document.getElementById('refresh-interval').value = settings.refresh_interval_minutes;
+    }
+    if (settings.location_refresh_interval_minutes) {
+      document.getElementById('location-refresh-interval').value = settings.location_refresh_interval_minutes;
     }
     if (settings.cache_expiry_minutes) {
       document.getElementById('cache-expiry').value = settings.cache_expiry_minutes;
@@ -663,6 +666,7 @@ async function saveSettings() {
   const intermediateWind = document.getElementById('intermediate-wind').value;
   const weatherApiKey = document.getElementById('weather-api-key').value;
   const refreshInterval = document.getElementById('refresh-interval').value;
+  const locationRefreshInterval = document.getElementById('location-refresh-interval').value;
   const cacheExpiry = document.getElementById('cache-expiry').value;
   
   const settings = {
@@ -670,6 +674,7 @@ async function saveSettings() {
     'intermediate_wind_max_mph': intermediateWind,
     'weather_api_key': weatherApiKey,
     'refresh_interval_minutes': refreshInterval,
+    'location_refresh_interval_minutes': locationRefreshInterval,
     'cache_expiry_minutes': cacheExpiry
   };
   

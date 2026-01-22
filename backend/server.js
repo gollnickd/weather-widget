@@ -394,9 +394,22 @@ app.get('/api/widget/conditions/:apiKey', async (req, res) => {
         temperature: Math.round(location.temperature_f || 0),
         weatherText: location.conditions_text
       },
-      lastUpdated: location.fetched_at,
-      nextUpdate: new Date(Date.now() + 10 * 60 * 1000).toISOString()
+      lastUpdated: location.fetched_at
     };
+    
+    // Get location refresh interval from settings
+    try {
+      const [settings] = await connection.query(
+        "SELECT config_value FROM system_config WHERE config_key = 'location_refresh_interval_minutes'"
+      );
+      const locationRefreshInterval = settings.length > 0 ? parseInt(settings[0].config_value) : 10;
+      responseData.nextUpdate = new Date(Date.now() + locationRefreshInterval * 60 * 1000).toISOString();
+      responseData.refreshInterval = locationRefreshInterval * 60 * 1000; // milliseconds for widget
+    } catch (settingsError) {
+      // Default to 10 minutes if setting not found
+      responseData.nextUpdate = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+      responseData.refreshInterval = 10 * 60 * 1000;
+    }
     
     // Log request (use valid location_id or NULL to avoid foreign key errors)
     const responseTime = Date.now() - startTime;
@@ -412,7 +425,7 @@ app.get('/api/widget/conditions/:apiKey', async (req, res) => {
       console.error('Failed to log API request:', logError.message);
     }
     
-    res.json(response);
+    res.json(responseData);
     
   } catch (error) {
     console.error('API Error:', error);

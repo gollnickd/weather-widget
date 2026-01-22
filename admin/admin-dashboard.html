@@ -481,7 +481,7 @@
           <h2 class="card-title">Weather API Data</h2>
           <p style="color: #6B7280; font-size: 14px; margin-top: 5px;">
             <strong>Fetched from WeatherAPI:</strong> When we pulled data from WeatherAPI.com<br>
-            <strong>Last Customer View:</strong> When a customer last viewed the widget for this location
+            <strong>Last Location Fetch:</strong> When the location last fetched weather data from Perfect Paddles
           </p>
           <div style="display: flex; gap: 10px;">
             <button class="btn btn-success" onclick="refreshAllNow()">🔄 Refresh All Now</button>
@@ -501,7 +501,7 @@
               <th>Cloud Cover</th>
               <th>Humidity</th>
               <th>Fetched from WeatherAPI</th>
-              <th>Last Customer View</th>
+              <th>Last Location Fetch</th>
             </tr>
           </thead>
           <tbody>
@@ -590,7 +590,15 @@
             <label class="form-label">Weather Data Pull Frequency (minutes)</label>
             <input type="number" class="form-input" id="refresh-interval" value="60" min="1">
             <small style="color: #6B7280; font-size: 12px; display: block; margin-top: 5px;">
-              How often to pull fresh weather data from the API (default: 60 minutes = 1 hour)
+              How often to pull fresh weather data from WeatherAPI.com (default: 60 minutes = 1 hour)
+            </small>
+          </div>
+          
+          <div class="form-group">
+            <label class="form-label">Location Data Pull Frequency (minutes)</label>
+            <input type="number" class="form-input" id="location-refresh-interval" value="10" min="1">
+            <small style="color: #6B7280; font-size: 12px; display: block; margin-top: 5px;">
+              How often locations fetch data from Perfect Paddles API (default: 10 minutes)
             </small>
           </div>
           

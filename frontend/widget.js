@@ -447,6 +447,13 @@
         }
         
         const data = await response.json();
+        
+        // Update refresh interval from API if provided
+        if (data.refreshInterval) {
+          this.config.refreshInterval = data.refreshInterval;
+          console.log(`PPWaterWidget: Using refresh interval ${data.refreshInterval / 1000}s from API`);
+        }
+        
         this.renderWidget(data);
         
         // Schedule next refresh
