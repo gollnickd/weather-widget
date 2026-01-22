@@ -114,31 +114,35 @@ async function fetchWeatherData(latitude, longitude) {
     
     const current = response.data.current;
     
-    // Always use Fahrenheit - WeatherAPI returns both temp_c and temp_f
+    // WeatherAPI bug detection: Sometimes temp_f contains Celsius values
     let temperature;
     
-    // SANITY CHECK: If temp_f seems to be Celsius (very low values in winter locations)
-    // Seattle winter should be 35-50°F, not -20 to 10°F
-    // If temp_f is suspiciously low but temp_c makes sense, API might be mislabeled
-    if (current.temp_f !== null && current.temp_f !== undefined) {
-      // Check if temp_f might actually be Celsius (common WeatherAPI bug)
-      // If temp_f is below 20 and temp_c exists and they're close, temp_f is probably Celsius
-      if (current.temp_f < 20 && current.temp_c !== null && 
-          Math.abs(current.temp_f - current.temp_c) < 5) {
+    if (current.temp_f !== null && current.temp_f !== undefined && 
+        current.temp_c !== null && current.temp_c !== undefined) {
+      
+      // Check if temp_f is actually Celsius (WeatherAPI bug)
+      // If temp_f and temp_c are very close (within 2 degrees), temp_f is mislabeled
+      const tempDiff = Math.abs(current.temp_f - current.temp_c);
+      
+      if (tempDiff < 2) {
         // temp_f is actually Celsius! Convert it
         temperature = (current.temp_f * 9/5) + 32;
-        console.log(`🔧 BUG DETECTED: API returned temp_f=${current.temp_f} which appears to be Celsius!`);
+        console.log(`🔧 BUG DETECTED: API returned temp_f=${current.temp_f} which is actually Celsius!`);
+        console.log(`   temp_c=${current.temp_c}, temp_f=${current.temp_f} (difference: ${tempDiff}°)`);
         console.log(`   Converted ${current.temp_f}°C to ${temperature}°F`);
-        console.log(`   API also returned temp_c=${current.temp_c} (confirming the bug)`);
       } else {
-        // temp_f looks correct, use it
+        // temp_f looks correct (different from temp_c as expected)
         temperature = current.temp_f;
-        console.log(`Using temp_f: ${temperature}°F for location ${latitude},${longitude}`);
+        console.log(`✅ Using temp_f: ${temperature}°F (temp_c: ${current.temp_c}°C, difference: ${tempDiff}°)`);
       }
+    } else if (current.temp_f !== null && current.temp_f !== undefined) {
+      // Only temp_f available, use it
+      temperature = current.temp_f;
+      console.log(`Using temp_f: ${temperature}°F (no temp_c to compare)`);
     } else if (current.temp_c !== null && current.temp_c !== undefined) {
-      // No temp_f, use temp_c and convert
+      // Only temp_c available, convert it
       temperature = (current.temp_c * 9/5) + 32;
-      console.log(`Converted temperature from ${current.temp_c}°C to ${temperature}°F for location ${latitude},${longitude}`);
+      console.log(`Converted temperature from ${current.temp_c}°C to ${temperature}°F`);
     } else {
       console.error('No temperature data available from WeatherAPI');
       temperature = 0;
@@ -162,7 +166,7 @@ async function fetchWeatherData(latitude, longitude) {
       cloudCover: current.cloud,
       humidity: current.humidity,
       weatherCondition: current.condition.text,
-      waveHeight: 0, // WeatherAPI doesn't provide wave data, would need marine-specific API
+      waveHeight: 0,
       raw: response.data
     };
   } catch (error) {
