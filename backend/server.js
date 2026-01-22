@@ -544,6 +544,46 @@ async function verifySession(token) {
   }
 }
 
+// Setup endpoint - creates default admin user (ONE TIME USE)
+app.get('/api/admin/setup', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    // Check if any admin users exist
+    const [existing] = await connection.query('SELECT COUNT(*) as count FROM admin_users');
+    
+    if (existing[0].count > 0) {
+      return res.status(400).json({ 
+        error: 'Setup already completed. Admin users already exist.',
+        hint: 'If you forgot your password, manually reset it in the database.'
+      });
+    }
+    
+    // Create default admin user
+    const password = 'admin123';
+    const passwordHash = await bcrypt.hash(password, 10);
+    
+    await connection.query(
+      `INSERT INTO admin_users (username, password_hash, email, full_name, is_active)
+       VALUES (?, ?, ?, ?, TRUE)`,
+      ['admin', passwordHash, 'admin@perfectpaddles.com', 'Admin User']
+    );
+    
+    res.json({
+      success: true,
+      message: 'Default admin user created successfully!',
+      username: 'admin',
+      password: password,
+      warning: 'Please change this password immediately after first login!'
+    });
+    
+  } catch (error) {
+    console.error('Setup error:', error);
+    res.status(500).json({ error: 'Setup failed: ' + error.message });
+  } finally {
+    connection.release();
+  }
+});
+
 // Login endpoint
 app.post('/api/admin/login', async (req, res) => {
   const connection = await pool.getConnection();
