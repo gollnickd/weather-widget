@@ -109,6 +109,9 @@
           font-weight: 700;
           color: white;
           text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
         
         .pp-widget-icon {
@@ -117,6 +120,12 @@
           display: flex;
           align-items: center;
           justify-content: center;
+          flex-shrink: 0;
+        }
+        
+        .pp-wave-icon {
+          font-size: 24px;
+          line-height: 1;
         }
         
         .pp-condition-indicator {

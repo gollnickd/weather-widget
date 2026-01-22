@@ -114,54 +114,34 @@ async function fetchWeatherData(latitude, longitude) {
     
     const current = response.data.current;
     
-    // WeatherAPI bug detection: Sometimes temp_f contains Celsius values
-    let temperature;
+    // Store BOTH temp_c and temp_f directly from API
+    // This avoids all conversion issues
+    const tempCelsius = current.temp_c;
+    const tempFahrenheit = current.temp_f;
     
-    if (current.temp_f !== null && current.temp_f !== undefined && 
-        current.temp_c !== null && current.temp_c !== undefined) {
-      
-      // Check if temp_f is actually Celsius (WeatherAPI bug)
-      // If temp_f and temp_c are very close (within 2 degrees), temp_f is mislabeled
-      const tempDiff = Math.abs(current.temp_f - current.temp_c);
-      
-      if (tempDiff < 2) {
-        // temp_f is actually Celsius! Convert it
-        temperature = (current.temp_f * 9/5) + 32;
-        console.log(`🔧 BUG DETECTED: API returned temp_f=${current.temp_f} which is actually Celsius!`);
-        console.log(`   temp_c=${current.temp_c}, temp_f=${current.temp_f} (difference: ${tempDiff}°)`);
-        console.log(`   Converted ${current.temp_f}°C to ${temperature}°F`);
-      } else {
-        // temp_f looks correct (different from temp_c as expected)
-        temperature = current.temp_f;
-        console.log(`✅ Using temp_f: ${temperature}°F (temp_c: ${current.temp_c}°C, difference: ${tempDiff}°)`);
-      }
-    } else if (current.temp_f !== null && current.temp_f !== undefined) {
-      // Only temp_f available, use it
-      temperature = current.temp_f;
-      console.log(`Using temp_f: ${temperature}°F (no temp_c to compare)`);
-    } else if (current.temp_c !== null && current.temp_c !== undefined) {
-      // Only temp_c available, convert it
-      temperature = (current.temp_c * 9/5) + 32;
-      console.log(`Converted temperature from ${current.temp_c}°C to ${temperature}°F`);
-    } else {
-      console.error('No temperature data available from WeatherAPI');
-      temperature = 0;
-    }
-    
-    // Log what we received from API for debugging
+    // Log what we received from API
     console.log(`Weather API response for ${latitude},${longitude}:`, {
-      temp_c: current.temp_c,
-      temp_f: current.temp_f,
-      using_temp: temperature,
+      temp_c: tempCelsius,
+      temp_f: tempFahrenheit,
       wind_mph: current.wind_mph,
       condition: current.condition.text
     });
+    
+    // Check if data looks suspicious (debugging)
+    if (tempCelsius !== null && tempFahrenheit !== null) {
+      const tempDiff = Math.abs(tempFahrenheit - tempCelsius);
+      if (tempDiff < 2) {
+        console.warn(`⚠️ SUSPICIOUS: temp_f=${tempFahrenheit} and temp_c=${tempCelsius} are too close (diff: ${tempDiff}°)`);
+        console.warn(`   This might indicate WeatherAPI is returning bad data`);
+      }
+    }
     
     return {
       windSpeed: current.wind_mph,
       gustSpeed: current.gust_mph,
       windDirection: current.wind_degree,
-      temperature: temperature,
+      tempCelsius: tempCelsius,
+      tempFahrenheit: tempFahrenheit,
       conditionsText: current.condition.text,
       cloudCover: current.cloud,
       humidity: current.humidity,
@@ -211,9 +191,9 @@ async function updateLocationWeather(locationId) {
     await connection.query(
       `INSERT INTO weather_data 
        (location_id, wind_speed_mph, wind_gust_mph, wind_direction_degrees, wind_direction,
-        wave_height_ft, temperature_f, conditions_text, condition_level, 
+        wave_height_ft, temperature_f, temp_celsius, temp_fahrenheit, conditions_text, condition_level, 
         cloud_cover, humidity, weather_condition, raw_data, expires_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         locationId,
         weatherData.windSpeed,
@@ -221,7 +201,9 @@ async function updateLocationWeather(locationId) {
         weatherData.windDirection,
         getWindDirectionText(weatherData.windDirection),
         weatherData.waveHeight,
-        weatherData.temperature,
+        weatherData.tempFahrenheit, // Store F in temperature_f for backward compatibility
+        weatherData.tempCelsius,    // Store original C from API
+        weatherData.tempFahrenheit, // Store original F from API
         weatherData.conditionsText,
         condition.level,
         weatherData.cloudCover,
@@ -333,6 +315,8 @@ app.get('/api/widget/conditions/:apiKey', async (req, res) => {
          wd.wind_direction_degrees,
          wd.wave_height_ft,
          wd.temperature_f,
+         wd.temp_celsius,
+         wd.temp_fahrenheit,
          wd.conditions_text,
          wd.condition_level,
          wd.fetched_at,
@@ -390,7 +374,8 @@ app.get('/api/widget/conditions/:apiKey', async (req, res) => {
         description: condition.description,
         windSpeed: Math.round(location.wind_speed_mph || 0),
         gustSpeed: Math.round(location.wind_gust_mph || 0),
-        temperature: Math.round(location.temperature_f || 0),
+        // Use temp_fahrenheit if available, fallback to temperature_f
+        temperature: Math.round(location.temp_fahrenheit || location.temperature_f || 0),
         weatherText: location.conditions_text
       },
       lastUpdated: location.fetched_at
