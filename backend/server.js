@@ -515,7 +515,15 @@ app.get('/api/admin/weather-data', async (req, res) => {
   const connection = await pool.getConnection();
   try {
     const [data] = await connection.query(
-      `SELECT wd.*, l.location_name, l.water_body_name, c.company_name
+      `SELECT 
+         wd.*, 
+         l.location_name, 
+         l.water_body_name, 
+         c.company_name,
+         (SELECT MAX(created_at) 
+          FROM api_logs 
+          WHERE location_id = l.id 
+          AND endpoint = '/api/widget/conditions') as last_customer_view
        FROM weather_data wd
        JOIN locations l ON l.id = wd.location_id
        JOIN customers c ON c.id = l.customer_id

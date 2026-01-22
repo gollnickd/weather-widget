@@ -146,19 +146,20 @@ async function loadWeatherData() {
             ${w.condition_level ? w.condition_level.toUpperCase() : 'N/A'}
           </span>
         </td>
-        <td>${w.temperature_f ? w.temperature_f + '°F' : 'N/A'}</td>
-        <td>${w.wind_speed_mph ? w.wind_speed_mph + ' mph' : 'N/A'}</td>
+        <td>${w.temperature_f ? Math.round(w.temperature_f) + '°F' : 'N/A'}</td>
+        <td>${w.wind_speed_mph ? Math.round(w.wind_speed_mph) + ' mph' : 'N/A'}</td>
         <td>${w.wind_direction || 'N/A'}</td>
         <td>${w.weather_condition || 'N/A'}</td>
         <td>${w.cloud_cover != null ? w.cloud_cover + '%' : 'N/A'}</td>
         <td>${w.humidity != null ? w.humidity + '%' : 'N/A'}</td>
-        <td>${w.fetched_at ? new Date(w.fetched_at).toLocaleString() : 'Never'}</td>
+        <td style="font-size: 12px;">${w.fetched_at ? new Date(w.fetched_at).toLocaleString() : 'Never'}</td>
+        <td style="font-size: 12px;">${w.last_customer_view ? new Date(w.last_customer_view).toLocaleString() : 'Never viewed'}</td>
       </tr>
     `).join('');
   } catch (error) {
     console.error('Error loading weather data:', error);
     document.querySelector('#weather-data-table tbody').innerHTML = 
-      `<tr><td colspan="9">Error: ${error.message}</td></tr>`;
+      `<tr><td colspan="10">Error: ${error.message}</td></tr>`;
   }
 }
 

@@ -480,7 +480,8 @@
         <div class="card-header">
           <h2 class="card-title">Weather API Data</h2>
           <p style="color: #6B7280; font-size: 14px; margin-top: 5px;">
-            Shows data pulled from WeatherAPI.com - "Fetched At" is when we pulled from the weather API
+            <strong>Fetched from WeatherAPI:</strong> When we pulled data from WeatherAPI.com<br>
+            <strong>Last Customer View:</strong> When a customer last viewed the widget for this location
           </p>
           <div style="display: flex; gap: 10px;">
             <button class="btn btn-success" onclick="refreshAllNow()">🔄 Refresh All Now</button>
@@ -499,12 +500,13 @@
               <th>Weather Condition</th>
               <th>Cloud Cover</th>
               <th>Humidity</th>
-              <th>Pulled from API At</th>
+              <th>Fetched from WeatherAPI</th>
+              <th>Last Customer View</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td colspan="9" class="loading">Loading weather data...</td>
+              <td colspan="10" class="loading">Loading weather data...</td>
             </tr>
           </tbody>
         </table>
