@@ -3,7 +3,8 @@
  * Handles all admin panel interactions
  */
 
-const API_BASE = 'http://localhost:3000/api/admin';
+// Use current host for API calls (works on Railway and localhost)
+const API_BASE = `${window.location.protocol}//${window.location.host}/api/admin`;
 let authToken = null;
 
 // Initialize dashboard

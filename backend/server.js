@@ -374,6 +374,148 @@ app.get('/api/widget/conditions/:apiKey', async (req, res) => {
   }
 });
 
+// ============================================
+// ADMIN API ENDPOINTS
+// ============================================
+
+// Get dashboard statistics
+app.get('/api/admin/stats', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    // Get total customers
+    const [customers] = await connection.query('SELECT COUNT(*) as total FROM customers WHERE is_active = TRUE');
+    
+    // Get total locations
+    const [locations] = await connection.query('SELECT COUNT(*) as total FROM locations WHERE is_active = TRUE');
+    
+    // Get API calls in last 24 hours
+    const [apiCalls] = await connection.query(
+      'SELECT COUNT(*) as total FROM api_logs WHERE created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)'
+    );
+    
+    // Get system status
+    const [schedule] = await connection.query(
+      'SELECT COUNT(*) as failing FROM refresh_schedule WHERE consecutive_failures > 0'
+    );
+    
+    res.json({
+      totalCustomers: customers[0].total,
+      totalLocations: locations[0].total,
+      apiCallsLast24h: apiCalls[0].total,
+      systemStatus: schedule[0].failing === 0 ? 'healthy' : 'warning'
+    });
+  } catch (error) {
+    console.error('Admin stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch stats' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Get all customers
+app.get('/api/admin/customers', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [customers] = await connection.query(
+      `SELECT id, company_name, website_url, contact_email, api_key, is_active, created_at 
+       FROM customers 
+       ORDER BY created_at DESC`
+    );
+    res.json(customers);
+  } catch (error) {
+    console.error('Admin customers error:', error);
+    res.status(500).json({ error: 'Failed to fetch customers' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Get all locations
+app.get('/api/admin/locations', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [locations] = await connection.query(
+      `SELECT l.*, c.company_name, wd.condition_level, wd.wind_speed_mph, wd.temperature_f, wd.fetched_at
+       FROM locations l
+       JOIN customers c ON c.id = l.customer_id
+       LEFT JOIN weather_data wd ON wd.location_id = l.id
+       ORDER BY l.created_at DESC`
+    );
+    res.json(locations);
+  } catch (error) {
+    console.error('Admin locations error:', error);
+    res.status(500).json({ error: 'Failed to fetch locations' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Get refresh schedule
+app.get('/api/admin/refresh-schedule', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [schedule] = await connection.query(
+      `SELECT rs.*, l.location_name, c.company_name
+       FROM refresh_schedule rs
+       JOIN locations l ON l.id = rs.location_id
+       JOIN customers c ON c.id = l.customer_id
+       ORDER BY rs.next_refresh_at ASC`
+    );
+    res.json(schedule);
+  } catch (error) {
+    console.error('Admin refresh schedule error:', error);
+    res.status(500).json({ error: 'Failed to fetch refresh schedule' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Get API logs
+app.get('/api/admin/logs', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [logs] = await connection.query(
+      `SELECT al.*, c.company_name, l.location_name
+       FROM api_logs al
+       LEFT JOIN customers c ON c.id = al.customer_id
+       LEFT JOIN locations l ON l.id = al.location_id
+       ORDER BY al.created_at DESC
+       LIMIT 100`
+    );
+    res.json(logs);
+  } catch (error) {
+    console.error('Admin logs error:', error);
+    res.status(500).json({ error: 'Failed to fetch logs' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Get system settings
+app.get('/api/admin/settings', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [settings] = await connection.query('SELECT * FROM system_config');
+    
+    // Convert to key-value object
+    const config = {};
+    settings.forEach(row => {
+      config[row.config_key] = row.config_value;
+    });
+    
+    res.json(config);
+  } catch (error) {
+    console.error('Admin settings error:', error);
+    res.status(500).json({ error: 'Failed to fetch settings' });
+  } finally {
+    connection.release();
+  }
+});
+
+// ============================================
+// END ADMIN API ENDPOINTS
+// ============================================
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
