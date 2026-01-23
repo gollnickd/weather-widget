@@ -674,7 +674,7 @@ async function loadCustomersForEditLocation() {
 
 async function loadMessageTemplates() {
   try {
-    const response = await fetch(`${API_BASE}/admin/message-templates`, {
+    const response = await fetch(`${API_BASE}/message-templates`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
     const templates = await response.json();
@@ -715,7 +715,7 @@ function showAddTemplateModal() {
 
 async function editTemplate(id) {
   try {
-    const response = await fetch(`${API_BASE}/admin/message-templates/${id}`, {
+    const response = await fetch(`${API_BASE}/message-templates/${id}`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
     const template = await response.json();
@@ -744,7 +744,7 @@ async function saveTemplate() {
   };
   
   try {
-    const url = id ? `${API_BASE}/admin/message-templates/${id}` : `${API_BASE}/admin/message-templates`;
+    const url = id ? `${API_BASE}/message-templates/${id}` : `${API_BASE}/message-templates`;
     const method = id ? 'PUT' : 'POST';
     
     const response = await fetch(url, {
@@ -775,7 +775,7 @@ async function deleteTemplate(id, name) {
   if (!confirm(`Delete template "${name}"?`)) return;
   
   try {
-    const response = await fetch(`${API_BASE}/admin/message-templates/${id}`, {
+    const response = await fetch(`${API_BASE}/message-templates/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
@@ -810,7 +810,7 @@ let messageFilter = 'active';
 
 async function loadCustomerMessages() {
   try {
-    const response = await fetch(`${API_BASE}/admin/customer-messages?filter=${messageFilter}`, {
+    const response = await fetch(`${API_BASE}/customer-messages?filter=${messageFilter}`, {
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
     const messages = await response.json();
@@ -875,7 +875,7 @@ async function deactivateMessage(id) {
   if (!confirm('Deactivate this message? It will no longer appear in the widget.')) return;
   
   try {
-    const response = await fetch(`${API_BASE}/admin/customer-messages/${id}/deactivate`, {
+    const response = await fetch(`${API_BASE}/customer-messages/${id}/deactivate`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
