@@ -372,6 +372,7 @@ app.get('/api/widget/conditions/:apiKey', async (req, res) => {
         description: condition.description,
         windSpeed: Math.round(location.wind_speed_mph || 0),
         gustSpeed: Math.round(location.wind_gust_mph || 0),
+        waveHeight: location.wave_height_ft ? parseFloat(location.wave_height_ft).toFixed(1) : 0,
         temperature: Math.round(location.temp_fahrenheit || 0),
         weatherText: location.conditions_text
       },

@@ -169,8 +169,8 @@
         
         .pp-weather-details {
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 12px;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 10px;
           margin-bottom: 16px;
           position: relative;
           z-index: 1;
@@ -179,7 +179,7 @@
         .pp-weather-item {
           background: rgba(255, 255, 255, 0.15);
           border-radius: 10px;
-          padding: 12px;
+          padding: 10px 8px;
           text-align: center;
           backdrop-filter: blur(10px);
         }
@@ -378,6 +378,10 @@
             <div class="pp-weather-item">
               <div class="pp-weather-label">Wind</div>
               <div class="pp-weather-value">${conditions.windSpeed} <span style="font-size: 14px;">mph</span></div>
+            </div>
+            <div class="pp-weather-item">
+              <div class="pp-weather-label">Waves</div>
+              <div class="pp-weather-value">${conditions.waveHeight !== undefined && conditions.waveHeight !== null ? conditions.waveHeight : '~'} <span style="font-size: 14px;">ft</span></div>
             </div>
             <div class="pp-weather-item">
               <div class="pp-weather-label">Temp</div>
