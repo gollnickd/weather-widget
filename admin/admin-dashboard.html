@@ -482,8 +482,8 @@
         <div class="card-header">
           <h2 class="card-title">Weather API Data</h2>
           <p style="color: #6B7280; font-size: 14px; margin-top: 5px;">
-            <strong>Fetched from WeatherAPI:</strong> When we pulled data from WeatherAPI.com<br>
-            <strong>Last Location Fetch:</strong> When the location last fetched weather data from Perfect Paddles
+            <strong>Fetched from WeatherAPI:</strong> When we last pulled data from WeatherAPI.com<br>
+            <strong>Next Refresh:</strong> When this location will be refreshed next
           </p>
           <div style="display: flex; gap: 10px;">
             <button class="btn btn-success" onclick="refreshAllNow()">🔄 Refresh All Now</button>
@@ -504,7 +504,7 @@
               <th>Cloud Cover</th>
               <th>Humidity</th>
               <th>Fetched from WeatherAPI</th>
-              <th>Last Location Fetch</th>
+              <th>Next Refresh</th>
             </tr>
           </thead>
           <tbody>
@@ -560,14 +560,13 @@
               <th>Template Name</th>
               <th>Message Text</th>
               <th>Display Order</th>
-              <th>Default</th>
               <th>Created</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td colspan="6" class="loading">Loading templates...</td>
+              <td colspan="5" class="loading">Loading templates...</td>
             </tr>
           </tbody>
         </table>
@@ -1051,13 +1050,6 @@
           <label class="form-label">Display Order</label>
           <input type="number" class="form-input" id="template-order" value="0" min="0">
           <small style="color: #6B7280; font-size: 12px;">Lower numbers appear first</small>
-        </div>
-        
-        <div class="form-group">
-          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-            <input type="checkbox" id="template-default" checked>
-            <span>Available to all customers by default</span>
-          </label>
         </div>
         
         <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">

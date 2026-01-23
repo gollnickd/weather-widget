@@ -138,27 +138,47 @@ async function loadWeatherData() {
     console.log('Weather Data:', data);
     
     const tbody = document.querySelector('#weather-data-table tbody');
-    tbody.innerHTML = data.map(w => `
-      <tr>
-        <td><strong>${w.location_name}</strong><br><small>${w.water_body_name || ''}</small></td>
-        <td>
-          <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; 
-                 background: ${w.condition_level === 'beginner' ? '#D1FAE5' : w.condition_level === 'intermediate' ? '#FEF3C7' : '#FEE2E2'};
-                 color: ${w.condition_level === 'beginner' ? '#065F46' : w.condition_level === 'intermediate' ? '#92400E' : '#991B1B'};">
-            ${w.condition_level ? w.condition_level.toUpperCase() : 'N/A'}
-          </span>
-        </td>
-        <td>${w.temp_celsius != null ? Math.round(w.temp_celsius) + '°C' : 'N/A'}</td>
-        <td>${w.temp_fahrenheit != null ? Math.round(w.temp_fahrenheit) + '°F' : 'N/A'}</td>
-        <td>${w.wind_speed_mph ? Math.round(w.wind_speed_mph) + ' mph' : 'N/A'}</td>
-        <td>${w.wind_direction || 'N/A'}</td>
-        <td>${w.weather_condition || 'N/A'}</td>
-        <td>${w.cloud_cover != null ? w.cloud_cover + '%' : 'N/A'}</td>
-        <td>${w.humidity != null ? w.humidity + '%' : 'N/A'}</td>
-        <td style="font-size: 12px;">${w.fetched_at ? new Date(w.fetched_at).toLocaleString() : 'Never'}</td>
-        <td style="font-size: 12px;">${w.last_customer_view ? new Date(w.last_customer_view).toLocaleString() : 'Never fetched'}</td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = data.map(w => {
+      // Calculate time until next refresh
+      let nextRefreshText = 'N/A';
+      if (w.next_refresh_at) {
+        const nextRefresh = new Date(w.next_refresh_at);
+        const now = new Date();
+        const minutesUntil = Math.round((nextRefresh - now) / 1000 / 60);
+        
+        if (minutesUntil < 0) {
+          nextRefreshText = '<span style="color: #059669;">Due now</span>';
+        } else if (minutesUntil === 0) {
+          nextRefreshText = '<span style="color: #059669;">In <1 min</span>';
+        } else if (minutesUntil < 60) {
+          nextRefreshText = `In ${minutesUntil} min`;
+        } else {
+          nextRefreshText = nextRefresh.toLocaleString();
+        }
+      }
+      
+      return `
+        <tr>
+          <td><strong>${w.location_name}</strong><br><small>${w.water_body_name || ''}</small></td>
+          <td>
+            <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; 
+                   background: ${w.condition_level === 'beginner' ? '#D1FAE5' : w.condition_level === 'intermediate' ? '#FEF3C7' : '#FEE2E2'};
+                   color: ${w.condition_level === 'beginner' ? '#065F46' : w.condition_level === 'intermediate' ? '#92400E' : '#991B1B'};">
+              ${w.condition_level ? w.condition_level.toUpperCase() : 'N/A'}
+            </span>
+          </td>
+          <td>${w.temp_celsius != null ? Math.round(w.temp_celsius) + '°C' : 'N/A'}</td>
+          <td>${w.temp_fahrenheit != null ? Math.round(w.temp_fahrenheit) + '°F' : 'N/A'}</td>
+          <td>${w.wind_speed_mph ? Math.round(w.wind_speed_mph) + ' mph' : 'N/A'}</td>
+          <td>${w.wind_direction || 'N/A'}</td>
+          <td>${w.weather_condition || 'N/A'}</td>
+          <td>${w.cloud_cover != null ? w.cloud_cover + '%' : 'N/A'}</td>
+          <td>${w.humidity != null ? w.humidity + '%' : 'N/A'}</td>
+          <td style="font-size: 12px;">${w.fetched_at ? new Date(w.fetched_at).toLocaleString() : 'Never'}</td>
+          <td style="font-size: 12px;">${nextRefreshText}</td>
+        </tr>
+      `;
+    }).join('');
   } catch (error) {
     console.error('Error loading weather data:', error);
     document.querySelector('#weather-data-table tbody').innerHTML = 
@@ -685,7 +705,6 @@ async function loadMessageTemplates() {
         <td><code>${t.template_name}</code></td>
         <td>${t.message_text}</td>
         <td>${t.display_order}</td>
-        <td>${t.is_default ? '✅ Yes' : '❌ No'}</td>
         <td style="font-size: 12px;">${new Date(t.created_at).toLocaleDateString()}</td>
         <td>
           <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" 
@@ -698,7 +717,7 @@ async function loadMessageTemplates() {
   } catch (error) {
     console.error('Error loading templates:', error);
     document.querySelector('#templates-table tbody').innerHTML = 
-      '<tr><td colspan="6">Error loading templates</td></tr>';
+      '<tr><td colspan="5">Error loading templates</td></tr>';
   }
 }
 
@@ -708,7 +727,6 @@ function showAddTemplateModal() {
   document.getElementById('template-name').value = '';
   document.getElementById('template-text').value = '';
   document.getElementById('template-order').value = '0';
-  document.getElementById('template-default').checked = true;
   document.getElementById('template-char-count').textContent = '0';
   openModal('template');
 }
@@ -725,7 +743,6 @@ async function editTemplate(id) {
     document.getElementById('template-name').value = template.template_name;
     document.getElementById('template-text').value = template.message_text;
     document.getElementById('template-order').value = template.display_order;
-    document.getElementById('template-default').checked = template.is_default;
     document.getElementById('template-char-count').textContent = template.message_text.length;
     openModal('template');
   } catch (error) {
@@ -740,7 +757,7 @@ async function saveTemplate() {
     template_name: document.getElementById('template-name').value,
     message_text: document.getElementById('template-text').value,
     display_order: parseInt(document.getElementById('template-order').value),
-    is_default: document.getElementById('template-default').checked
+    is_default: true  // Always set to true since we removed the checkbox
   };
   
   try {

@@ -255,7 +255,7 @@ async function scheduledWeatherRefresh() {
   try {
     // Get locations that need refresh
     const [schedules] = await connection.query(
-      `SELECT rs.location_id, l.location_name
+      `SELECT rs.location_id, l.location_name, rs.next_refresh_at, rs.refresh_interval_minutes
        FROM refresh_schedule rs
        JOIN locations l ON l.id = rs.location_id
        WHERE rs.next_refresh_at <= NOW() 
@@ -264,7 +264,12 @@ async function scheduledWeatherRefresh() {
        LIMIT 50`
     );
     
-    console.log(`Found ${schedules.length} locations to refresh`);
+    if (schedules.length > 0) {
+      console.log(`[Weather Refresh] Found ${schedules.length} locations to refresh at ${new Date().toISOString()}`);
+      schedules.forEach(s => {
+        console.log(`  → ${s.location_name} (last scheduled: ${s.next_refresh_at}, interval: ${s.refresh_interval_minutes} min)`);
+      });
+    }
     
     // Update each location (with slight delay to avoid API rate limits)
     for (const schedule of schedules) {
@@ -551,13 +556,12 @@ app.get('/api/admin/weather-data', async (req, res) => {
          l.location_name, 
          l.water_body_name, 
          c.company_name,
-         (SELECT MAX(created_at) 
-          FROM api_logs 
-          WHERE location_id = l.id 
-          AND endpoint = '/api/widget/conditions') as last_customer_view
+         rs.next_refresh_at,
+         rs.refresh_interval_minutes
        FROM weather_data wd
        JOIN locations l ON l.id = wd.location_id
        JOIN customers c ON c.id = l.customer_id
+       LEFT JOIN refresh_schedule rs ON rs.location_id = l.id
        ORDER BY wd.fetched_at DESC`
     );
     res.json(data);
