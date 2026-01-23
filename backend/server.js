@@ -1488,6 +1488,9 @@ app.get('/widget-iframe.html', (req, res) => {
 // Serve admin dashboard
 app.use('/admin', express.static(path.join(__dirname, '..', 'admin')));
 
+// Serve customer portal
+app.use('/customer', express.static(path.join(__dirname, '..', 'customer')));
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Water Conditions Widget API running on port ${PORT}`);
