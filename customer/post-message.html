@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Post Message - Perfect Paddles</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0891B2 0%, #06A77D 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 30px;
+    }
+    
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+      margin-bottom: 20px;
+    }
+    
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .quick-posts {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    
+    .quick-post-btn {
+      background: #F3F4F6;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px;
+      color: #374151;
+    }
+    
+    .quick-post-btn:active {
+      transform: scale(0.98);
+    }
+    
+    .quick-post-btn.selected {
+      background: #DBEAFE;
+      border-color: #0891B2;
+      color: #0891B2;
+      font-weight: 500;
+    }
+    
+    .custom-message {
+      margin-top: 16px;
+      display: none;
+    }
+    
+    .custom-message.active {
+      display: block;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 8px;
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #E5E7EB;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: border-color 0.2s;
+    }
+    
+    .form-input:focus {
+      outline: none;
+      border-color: #0891B2;
+    }
+    
+    textarea.form-input {
+      min-height: 80px;
+      resize: vertical;
+      font-family: inherit;
+    }
+    
+    .char-count {
+      font-size: 12px;
+      color: #6B7280;
+      text-align: right;
+      margin-top: 4px;
+    }
+    
+    .expire-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    
+    .expire-btn {
+      background: #F3F4F6;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      padding: 12px 8px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 13px;
+      color: #374151;
+      transition: all 0.2s;
+    }
+    
+    .expire-btn.selected {
+      background: #DBEAFE;
+      border-color: #0891B2;
+      color: #0891B2;
+      font-weight: 500;
+    }
+    
+    .custom-expire {
+      display: none;
+    }
+    
+    .custom-expire.active {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 12px;
+    }
+    
+    .custom-expire input {
+      flex: 1;
+    }
+    
+    .custom-expire select {
+      padding: 12px;
+      border: 2px solid #E5E7EB;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    
+    .cta-options {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    
+    .cta-input {
+      display: none;
+    }
+    
+    .cta-input.active {
+      display: block;
+      margin-top: 12px;
+    }
+    
+    .btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, #0891B2 0%, #06A77D 100%);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    .btn-primary:active {
+      transform: scale(0.98);
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    
+    .alert-success {
+      background: #D1FAE5;
+      color: #065F46;
+      border: 1px solid #10B981;
+    }
+    
+    .alert-error {
+      background: #FEE2E2;
+      color: #991B1B;
+      border: 1px solid #EF4444;
+    }
+    
+    .preview {
+      background: linear-gradient(135deg, #0891B2 0%, #06A77D 100%);
+      color: white;
+      padding: 16px;
+      border-radius: 12px;
+      margin-top: 16px;
+    }
+    
+    .preview-title {
+      font-size: 12px;
+      opacity: 0.9;
+      margin-bottom: 8px;
+    }
+    
+    .preview-message {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    .active-messages {
+      margin-top: 20px;
+    }
+    
+    .message-item {
+      background: #F9FAFB;
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    
+    .message-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    
+    .message-text {
+      color: #374151;
+      margin-bottom: 4px;
+    }
+    
+    .message-meta {
+      font-size: 12px;
+      color: #6B7280;
+    }
+    
+    .btn-remove {
+      background: #FEE2E2;
+      color: #991B1B;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📢 Post a Message</h1>
+      <p>Share updates with your customers</p>
+    </div>
+    
+    <div id="alert-container"></div>
+    
+    <div class="card">
+      <div class="section-title">
+        ⚡ Quick Posts
+      </div>
+      
+      <div class="quick-posts" id="quick-posts">
+        <!-- Quick posts loaded dynamically -->
+      </div>
+      
+      <div class="quick-post-btn" onclick="selectCustomMessage()">
+        ✏️ Custom Message
+      </div>
+      
+      <div class="custom-message" id="custom-message">
+        <div class="form-group">
+          <label class="form-label">Your Message</label>
+          <textarea 
+            class="form-input" 
+            id="custom-text" 
+            maxlength="255" 
+            placeholder="Enter your custom message..."></textarea>
+          <div class="char-count">
+            <span id="char-count">0</span>/255
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="section-title">
+        ⏰ Message Expires
+      </div>
+      
+      <div class="expire-options">
+        <button class="expire-btn selected" onclick="selectExpire('end_of_day')">
+          End of Day
+        </button>
+        <button class="expire-btn" onclick="selectExpire('hours')">
+          Custom Hours
+        </button>
+        <button class="expire-btn" onclick="selectExpire('minutes')">
+          Custom Minutes
+        </button>
+      </div>
+      
+      <div class="custom-expire" id="custom-expire">
+        <input 
+          type="number" 
+          class="form-input" 
+          id="expire-value" 
+          min="1" 
+          placeholder="Amount">
+        <select class="form-input" id="expire-unit">
+          <option value="hours">Hours</option>
+          <option value="minutes">Minutes</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="section-title">
+        🔗 Call to Action (Optional)
+      </div>
+      
+      <div class="cta-options">
+        <button class="cta-btn expire-btn selected" onclick="selectCTA('none')">
+          None
+        </button>
+        <button class="cta-btn expire-btn" onclick="selectCTA('phone')">
+          📞 Phone
+        </button>
+        <button class="cta-btn expire-btn" onclick="selectCTA('url')">
+          🌐 Website
+        </button>
+      </div>
+      
+      <div class="cta-input" id="cta-phone">
+        <label class="form-label">Phone Number</label>
+        <input 
+          type="tel" 
+          class="form-input" 
+          id="phone-value" 
+          placeholder="(555) 123-4567">
+      </div>
+      
+      <div class="cta-input" id="cta-url">
+        <label class="form-label">Website URL</label>
+        <input 
+          type="url" 
+          class="form-input" 
+          id="url-value" 
+          placeholder="https://example.com">
+      </div>
+      
+      <div class="preview" id="preview" style="display: none;">
+        <div class="preview-title">Preview:</div>
+        <div class="preview-message" id="preview-text"></div>
+      </div>
+    </div>
+    
+    <button class="btn-primary" onclick="postMessage()" id="post-btn">
+      📤 Post Message
+    </button>
+    
+    <div class="card active-messages" id="active-messages-container" style="display: none;">
+      <div class="section-title">
+        📌 Active Messages
+      </div>
+      <div id="active-messages"></div>
+    </div>
+  </div>
+  
+  <script>
+    const API_BASE = window.location.origin + '/api';
+    let apiKey = new URLSearchParams(window.location.search).get('key');
+    let selectedTemplate = null;
+    let selectedExpire = 'end_of_day';
+    let selectedCTA = 'none';
+    
+    // Check for API key in URL or localStorage
+    if (!apiKey) {
+      apiKey = localStorage.getItem('pp_customer_api_key');
+    } else {
+      localStorage.setItem('pp_customer_api_key', apiKey);
+    }
+    
+    if (!apiKey) {
+      showAlert('Please provide your API key in the URL: ?key=YOUR_KEY', 'error');
+    }
+    
+    // Load quick post templates
+    async function loadTemplates() {
+      try {
+        const response = await fetch(`${API_BASE}/message-templates`);
+        const templates = await response.json();
+        
+        const container = document.getElementById('quick-posts');
+        container.innerHTML = templates.map(t => `
+          <button class="quick-post-btn" onclick="selectTemplate('${t.template_name}', '${t.message_text}')">
+            ${t.message_text}
+          </button>
+        `).join('');
+      } catch (error) {
+        console.error('Error loading templates:', error);
+      }
+    }
+    
+    function selectTemplate(name, text) {
+      selectedTemplate = { name, text };
+      document.querySelectorAll('.quick-post-btn').forEach(btn => btn.classList.remove('selected'));
+      event.target.classList.add('selected');
+      document.getElementById('custom-message').classList.remove('active');
+      updatePreview(text);
+    }
+    
+    function selectCustomMessage() {
+      selectedTemplate = null;
+      document.querySelectorAll('.quick-post-btn').forEach(btn => btn.classList.remove('selected'));
+      event.target.classList.add('selected');
+      document.getElementById('custom-message').classList.add('active');
+      document.getElementById('custom-text').focus();
+      updatePreview(document.getElementById('custom-text').value);
+    }
+    
+    function selectExpire(type) {
+      selectedExpire = type;
+      document.querySelectorAll('.expire-btn').forEach(btn => btn.classList.remove('selected'));
+      event.target.classList.add('selected');
+      
+      const customExpire = document.getElementById('custom-expire');
+      if (type === 'hours' || type === 'minutes') {
+        customExpire.classList.add('active');
+        document.getElementById('expire-unit').value = type;
+      } else {
+        customExpire.classList.remove('active');
+      }
+    }
+    
+    function selectCTA(type) {
+      selectedCTA = type;
+      document.querySelectorAll('.cta-btn').forEach(btn => btn.classList.remove('selected'));
+      event.target.classList.add('selected');
+      
+      document.getElementById('cta-phone').classList.remove('active');
+      document.getElementById('cta-url').classList.remove('active');
+      
+      if (type === 'phone') {
+        document.getElementById('cta-phone').classList.add('active');
+      } else if (type === 'url') {
+        document.getElementById('cta-url').classList.add('active');
+      }
+    }
+    
+    function updatePreview(text) {
+      const preview = document.getElementById('preview');
+      const previewText = document.getElementById('preview-text');
+      
+      if (text && text.trim()) {
+        preview.style.display = 'block';
+        previewText.textContent = text;
+      } else {
+        preview.style.display = 'none';
+      }
+    }
+    
+    // Character counter
+    document.getElementById('custom-text').addEventListener('input', function() {
+      document.getElementById('char-count').textContent = this.value.length;
+      updatePreview(this.value);
+    });
+    
+    async function postMessage() {
+      if (!apiKey) {
+        showAlert('API key required', 'error');
+        return;
+      }
+      
+      let messageText;
+      let messageType;
+      let quickPostTemplate = null;
+      
+      if (selectedTemplate) {
+        messageText = selectedTemplate.text;
+        messageType = 'quick_post';
+        quickPostTemplate = selectedTemplate.name;
+      } else {
+        messageText = document.getElementById('custom-text').value.trim();
+        messageType = 'custom';
+      }
+      
+      if (!messageText) {
+        showAlert('Please select a quick post or enter a custom message', 'error');
+        return;
+      }
+      
+      // Get expiration
+      let expireDuration = null;
+      if (selectedExpire === 'hours' || selectedExpire === 'minutes') {
+        expireDuration = parseInt(document.getElementById('expire-value').value);
+        if (!expireDuration || expireDuration < 1) {
+          showAlert('Please enter a valid duration', 'error');
+          return;
+        }
+      }
+      
+      // Get CTA
+      let ctaValue = null;
+      if (selectedCTA === 'phone') {
+        ctaValue = document.getElementById('phone-value').value.trim();
+        if (!ctaValue) {
+          showAlert('Please enter a phone number', 'error');
+          return;
+        }
+      } else if (selectedCTA === 'url') {
+        ctaValue = document.getElementById('url-value').value.trim();
+        if (!ctaValue) {
+          showAlert('Please enter a website URL', 'error');
+          return;
+        }
+      }
+      
+      const data = {
+        message_type: messageType,
+        quick_post_template: quickPostTemplate,
+        message_text: messageText,
+        expire_type: selectedExpire,
+        expire_duration: expireDuration,
+        cta_type: selectedCTA,
+        cta_value: ctaValue
+      };
+      
+      const btn = document.getElementById('post-btn');
+      btn.disabled = true;
+      btn.textContent = 'Posting...';
+      
+      try {
+        const response = await fetch(`${API_BASE}/customer/post-message`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-Key': apiKey
+          },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok) {
+          showAlert('✅ Message posted successfully!', 'success');
+          resetForm();
+          loadActiveMessages();
+        } else {
+          showAlert(result.error || 'Failed to post message', 'error');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        showAlert('Network error. Please try again.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '📤 Post Message';
+      }
+    }
+    
+    function resetForm() {
+      selectedTemplate = null;
+      document.querySelectorAll('.quick-post-btn').forEach(btn => btn.classList.remove('selected'));
+      document.getElementById('custom-message').classList.remove('active');
+      document.getElementById('custom-text').value = '';
+      document.getElementById('char-count').textContent = '0';
+      document.getElementById('preview').style.display = 'none';
+      
+      selectedExpire = 'end_of_day';
+      document.querySelectorAll('.expire-btn').forEach((btn, i) => {
+        btn.classList.toggle('selected', i === 0);
+      });
+      document.getElementById('custom-expire').classList.remove('active');
+      
+      selectedCTA = 'none';
+      document.querySelectorAll('.cta-btn').forEach((btn, i) => {
+        btn.classList.toggle('selected', i === 0);
+      });
+      document.getElementById('cta-phone').classList.remove('active');
+      document.getElementById('cta-url').classList.remove('active');
+      document.getElementById('phone-value').value = '';
+      document.getElementById('url-value').value = '';
+    }
+    
+    async function loadActiveMessages() {
+      if (!apiKey) return;
+      
+      try {
+        const response = await fetch(`${API_BASE}/customer/messages`, {
+          headers: { 'X-API-Key': apiKey }
+        });
+        const messages = await response.json();
+        
+        const container = document.getElementById('active-messages');
+        const containerDiv = document.getElementById('active-messages-container');
+        
+        if (messages.length > 0) {
+          containerDiv.style.display = 'block';
+          container.innerHTML = messages.map(m => `
+            <div class="message-item">
+              <div class="message-header">
+                <strong>${m.message_type === 'quick_post' ? '⚡' : '✏️'}</strong>
+                <button class="btn-remove" onclick="removeMessage(${m.id})">Remove</button>
+              </div>
+              <div class="message-text">${m.message_text}</div>
+              <div class="message-meta">
+                Expires: ${new Date(m.expires_at).toLocaleString()} • 
+                Views: ${m.view_count} • 
+                Clicks: ${m.click_count}
+              </div>
+            </div>
+          `).join('');
+        } else {
+          containerDiv.style.display = 'none';
+        }
+      } catch (error) {
+        console.error('Error loading messages:', error);
+      }
+    }
+    
+    async function removeMessage(id) {
+      if (!confirm('Remove this message?')) return;
+      
+      try {
+        const response = await fetch(`${API_BASE}/customer/messages/${id}`, {
+          method: 'DELETE',
+          headers: { 'X-API-Key': apiKey }
+        });
+        
+        if (response.ok) {
+          showAlert('Message removed', 'success');
+          loadActiveMessages();
+        }
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+    
+    function showAlert(message, type) {
+      const container = document.getElementById('alert-container');
+      container.innerHTML = `<div class="card alert alert-${type}">${message}</div>`;
+      setTimeout(() => container.innerHTML = '', 5000);
+    }
+    
+    // Load on page load
+    loadTemplates();
+    loadActiveMessages();
+  </script>
+</body>
+</html>

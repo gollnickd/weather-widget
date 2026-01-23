@@ -379,6 +379,34 @@ app.get('/api/widget/conditions/:apiKey', async (req, res) => {
       lastUpdated: location.fetched_at
     };
     
+    // Get active customer message (if any)
+    try {
+      const [messages] = await connection.query(
+        `SELECT id, message_text, cta_type, cta_value 
+         FROM customer_messages 
+         WHERE customer_id = ? 
+           AND (location_id IS NULL OR location_id = ?)
+           AND is_active = TRUE 
+           AND is_expired = FALSE 
+           AND expires_at > NOW()
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [location.customer_id, location.location_id]
+      );
+      
+      if (messages.length > 0) {
+        responseData.customerMessage = {
+          id: messages[0].id,
+          text: messages[0].message_text,
+          ctaType: messages[0].cta_type,
+          ctaValue: messages[0].cta_value
+        };
+      }
+    } catch (messageError) {
+      // Don't fail the request if message fetch fails
+      console.error('Error fetching customer message:', messageError);
+    }
+    
     // Get location refresh interval from settings
     try {
       const [settings] = await connection.query(
@@ -1181,6 +1209,258 @@ app.post('/api/admin/settings', async (req, res) => {
   } catch (error) {
     console.error('Update settings error:', error);
     res.status(500).json({ error: 'Failed to update settings' });
+  } finally {
+    connection.release();
+  }
+});
+
+// ============================================
+// CUSTOMER MESSAGE API ENDPOINTS
+// ============================================
+
+// Get message templates (public)
+app.get('/api/message-templates', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [templates] = await connection.query(
+      'SELECT * FROM message_templates WHERE is_default = TRUE ORDER BY display_order'
+    );
+    res.json(templates);
+  } catch (error) {
+    console.error('Get templates error:', error);
+    res.status(500).json({ error: 'Failed to load templates' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Post a new message (customer authenticated)
+app.post('/api/customer/post-message', async (req, res) => {
+  const connection = await pool.getConnection();
+  const apiKey = req.headers['x-api-key'];
+  
+  if (!apiKey) {
+    return res.status(401).json({ error: 'API key required' });
+  }
+  
+  try {
+    // Verify API key and get customer
+    const [customers] = await connection.query(
+      'SELECT id FROM customers WHERE api_key = ? AND is_active = TRUE',
+      [apiKey]
+    );
+    
+    if (customers.length === 0) {
+      return res.status(401).json({ error: 'Invalid API key' });
+    }
+    
+    const customerId = customers[0].id;
+    const {
+      message_type,
+      quick_post_template,
+      message_text,
+      expire_type,
+      expire_duration,
+      cta_type,
+      cta_value,
+      location_id
+    } = req.body;
+    
+    // Validate message
+    if (!message_text || message_text.trim().length === 0) {
+      return res.status(400).json({ error: 'Message text required' });
+    }
+    
+    if (message_text.length > 255) {
+      return res.status(400).json({ error: 'Message too long (max 255 characters)' });
+    }
+    
+    // Calculate expiration time
+    let expiresAt;
+    if (expire_type === 'end_of_day') {
+      // Set to midnight of current day
+      expiresAt = new Date();
+      expiresAt.setHours(23, 59, 59, 999);
+    } else if (expire_type === 'hours') {
+      expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + parseInt(expire_duration || 1));
+    } else if (expire_type === 'minutes') {
+      expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + parseInt(expire_duration || 30));
+    } else {
+      // Default to end of day
+      expiresAt = new Date();
+      expiresAt.setHours(23, 59, 59, 999);
+    }
+    
+    // Insert message
+    const [result] = await connection.query(
+      `INSERT INTO customer_messages 
+       (customer_id, location_id, message_type, quick_post_template, message_text, 
+        cta_type, cta_value, expires_at, expire_type, expire_duration, created_by_ip)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        customerId,
+        location_id || null,
+        message_type || 'custom',
+        quick_post_template,
+        message_text.trim(),
+        cta_type || 'none',
+        cta_value,
+        expiresAt,
+        expire_type || 'end_of_day',
+        expire_duration,
+        req.ip
+      ]
+    );
+    
+    console.log(`Customer ${customerId} posted message: "${message_text}"`);
+    
+    res.json({
+      success: true,
+      message_id: result.insertId,
+      expires_at: expiresAt
+    });
+    
+  } catch (error) {
+    console.error('Post message error:', error);
+    res.status(500).json({ error: 'Failed to post message' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Get customer's active messages
+app.get('/api/customer/messages', async (req, res) => {
+  const connection = await pool.getConnection();
+  const apiKey = req.headers['x-api-key'];
+  
+  if (!apiKey) {
+    return res.status(401).json({ error: 'API key required' });
+  }
+  
+  try {
+    const [customers] = await connection.query(
+      'SELECT id FROM customers WHERE api_key = ? AND is_active = TRUE',
+      [apiKey]
+    );
+    
+    if (customers.length === 0) {
+      return res.status(401).json({ error: 'Invalid API key' });
+    }
+    
+    const customerId = customers[0].id;
+    
+    const [messages] = await connection.query(
+      `SELECT * FROM customer_messages 
+       WHERE customer_id = ? 
+         AND is_active = TRUE 
+         AND is_expired = FALSE 
+         AND expires_at > NOW()
+       ORDER BY created_at DESC`,
+      [customerId]
+    );
+    
+    res.json(messages);
+    
+  } catch (error) {
+    console.error('Get messages error:', error);
+    res.status(500).json({ error: 'Failed to load messages' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Remove/deactivate a message
+app.delete('/api/customer/messages/:id', async (req, res) => {
+  const connection = await pool.getConnection();
+  const apiKey = req.headers['x-api-key'];
+  const messageId = req.params.id;
+  
+  if (!apiKey) {
+    return res.status(401).json({ error: 'API key required' });
+  }
+  
+  try {
+    const [customers] = await connection.query(
+      'SELECT id FROM customers WHERE api_key = ? AND is_active = TRUE',
+      [apiKey]
+    );
+    
+    if (customers.length === 0) {
+      return res.status(401).json({ error: 'Invalid API key' });
+    }
+    
+    const customerId = customers[0].id;
+    
+    // Deactivate message (only if owned by this customer)
+    await connection.query(
+      `UPDATE customer_messages 
+       SET is_active = FALSE 
+       WHERE id = ? AND customer_id = ?`,
+      [messageId, customerId]
+    );
+    
+    res.json({ success: true });
+    
+  } catch (error) {
+    console.error('Delete message error:', error);
+    res.status(500).json({ error: 'Failed to remove message' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Track message view (called by widget)
+app.post('/api/messages/:id/view', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.query(
+      'UPDATE customer_messages SET view_count = view_count + 1 WHERE id = ?',
+      [req.params.id]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Track view error:', error);
+    res.status(500).json({ error: 'Failed to track view' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Track message click (called by widget)
+app.post('/api/messages/:id/click', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.query(
+      'UPDATE customer_messages SET click_count = click_count + 1 WHERE id = ?',
+      [req.params.id]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Track click error:', error);
+    res.status(500).json({ error: 'Failed to track click' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Cron job to expire old messages (runs every hour)
+cron.schedule('0 * * * *', async () => {
+  const connection = await pool.getConnection();
+  try {
+    const [result] = await connection.query(
+      `UPDATE customer_messages 
+       SET is_expired = TRUE 
+       WHERE expires_at <= NOW() 
+         AND is_expired = FALSE`
+    );
+    
+    if (result.affectedRows > 0) {
+      console.log(`Expired ${result.affectedRows} customer messages`);
+    }
+  } catch (error) {
+    console.error('Error expiring messages:', error);
   } finally {
     connection.release();
   }

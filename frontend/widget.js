@@ -210,6 +210,50 @@
           margin-bottom: 2px;
         }
         
+        .pp-customer-message {
+          background: rgba(255, 255, 255, 0.25);
+          border: 2px solid rgba(255, 255, 255, 0.4);
+          border-radius: 12px;
+          padding: 14px;
+          margin-bottom: 16px;
+          position: relative;
+          z-index: 1;
+          backdrop-filter: blur(10px);
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        
+        .pp-customer-message:hover {
+          background: rgba(255, 255, 255, 0.35);
+          transform: translateY(-2px);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .pp-customer-message:active {
+          transform: translateY(0);
+        }
+        
+        .pp-message-icon {
+          font-size: 18px;
+          margin-bottom: 6px;
+        }
+        
+        .pp-message-text {
+          font-size: 14px;
+          font-weight: 500;
+          line-height: 1.4;
+          color: white;
+        }
+        
+        .pp-message-cta {
+          font-size: 11px;
+          opacity: 0.9;
+          margin-top: 6px;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        
         .pp-widget-footer {
           font-size: 10px;
           opacity: 0.8;
@@ -374,6 +418,8 @@
             <p class="pp-condition-description">${conditions.description}</p>
           </div>
           
+          ${data.customerMessage ? this.renderCustomerMessage(data.customerMessage) : ''}
+          
           <div class="pp-weather-details">
             <div class="pp-weather-item">
               <div class="pp-weather-label">Wind</div>
@@ -402,6 +448,87 @@
           </div>
         </div>
       `;
+    },
+    
+    /**
+     * Render customer message
+     */
+    renderCustomerMessage: function(message) {
+      if (!message || !message.text) return '';
+      
+      const ctaIcon = {
+        'phone': '📞',
+        'url': '🌐',
+        'none': ''
+      }[message.ctaType] || '';
+      
+      const ctaText = {
+        'phone': 'Tap to call',
+        'url': 'Visit website',
+        'none': ''
+      }[message.ctaType] || '';
+      
+      const messageHtml = `
+        <div class="pp-customer-message" onclick="PPWaterWidget.handleMessageClick('${message.id}', '${message.ctaType}', '${message.ctaValue || ''}')">
+          <div class="pp-message-icon">📢</div>
+          <div class="pp-message-text">${this.escapeHtml(message.text)}</div>
+          ${message.ctaType !== 'none' ? `
+            <div class="pp-message-cta">
+              ${ctaIcon} ${ctaText} →
+            </div>
+          ` : ''}
+        </div>
+      `;
+      
+      // Track message view
+      this.trackMessageView(message.id);
+      
+      return messageHtml;
+    },
+    
+    /**
+     * Handle message click
+     */
+    handleMessageClick: function(messageId, ctaType, ctaValue) {
+      // Track click
+      this.trackMessageClick(messageId);
+      
+      if (ctaType === 'phone' && ctaValue) {
+        window.location.href = `tel:${ctaValue}`;
+      } else if (ctaType === 'url' && ctaValue) {
+        window.open(ctaValue, '_blank');
+      }
+    },
+    
+    /**
+     * Track message view
+     */
+    trackMessageView: function(messageId) {
+      if (!messageId) return;
+      
+      fetch(`${this.config.apiEndpoint.replace('/widget/conditions', '')}/messages/${messageId}/view`, {
+        method: 'POST'
+      }).catch(err => console.error('Failed to track view:', err));
+    },
+    
+    /**
+     * Track message click
+     */
+    trackMessageClick: function(messageId) {
+      if (!messageId) return;
+      
+      fetch(`${this.config.apiEndpoint.replace('/widget/conditions', '')}/messages/${messageId}/click`, {
+        method: 'POST'
+      }).catch(err => console.error('Failed to track click:', err));
+    },
+    
+    /**
+     * Escape HTML to prevent XSS
+     */
+    escapeHtml: function(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
     },
     
     /**
