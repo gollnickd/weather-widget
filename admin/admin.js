@@ -253,20 +253,67 @@ async function loadRefreshSchedule() {
   try {
     const response = await fetch(`${API_BASE}/refresh-schedule`);
     const schedule = await response.json();
-    console.log('Schedule:', schedule);
+    console.log('Widget Activity Schedule:', schedule);
     
     const tbody = document.querySelector('#schedule-table tbody');
-    tbody.innerHTML = schedule.map(s => `
-      <tr>
-        <td>${s.location_name}</td>
-        <td>${s.company_name}</td>
-        <td>${new Date(s.last_refresh_at).toLocaleString()}</td>
-        <td>${new Date(s.next_refresh_at).toLocaleString()}</td>
-        <td>${s.consecutive_failures || 0}</td>
-      </tr>
-    `).join('');
+    tbody.innerHTML = schedule.map(s => {
+      // Calculate time until next widget refresh
+      let nextRefreshText = 'N/A';
+      let statusText = '🔴 No Activity';
+      let statusColor = '#EF4444';
+      
+      if (s.last_widget_pull) {
+        const lastPull = new Date(s.last_widget_pull);
+        const now = new Date();
+        const minutesSinceLastPull = Math.round((now - lastPull) / 1000 / 60);
+        
+        if (s.next_widget_refresh) {
+          const nextRefresh = new Date(s.next_widget_refresh);
+          const minutesUntilRefresh = Math.round((nextRefresh - now) / 1000 / 60);
+          
+          if (minutesUntilRefresh < 0) {
+            nextRefreshText = '<span style="color: #059669;">Overdue (should pull now)</span>';
+          } else if (minutesUntilRefresh === 0) {
+            nextRefreshText = '<span style="color: #059669;">Due now</span>';
+          } else {
+            nextRefreshText = `In ${minutesUntilRefresh} min`;
+          }
+        }
+        
+        // Status based on recent activity
+        if (minutesSinceLastPull <= 15) {
+          statusText = '🟢 Active';
+          statusColor = '#10B981';
+        } else if (minutesSinceLastPull <= 30) {
+          statusText = '🟡 Slow';
+          statusColor = '#F59E0B';
+        } else {
+          statusText = '🔴 Inactive';
+          statusColor = '#EF4444';
+        }
+      }
+      
+      return `
+        <tr>
+          <td><strong>${s.location_name}</strong></td>
+          <td>${s.company_name}</td>
+          <td style="font-size: 12px;">${s.last_widget_pull ? new Date(s.last_widget_pull).toLocaleString() : 'Never'}</td>
+          <td>${s.total_requests || 0}</td>
+          <td>${s.requests_last_hour || 0}</td>
+          <td>${s.requests_last_24h || 0}</td>
+          <td style="font-size: 12px;">${nextRefreshText}</td>
+          <td style="color: ${statusColor}; font-weight: 600;">${statusText}</td>
+        </tr>
+      `;
+    }).join('');
+    
+    if (schedule.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: #6B7280;">No active locations</td></tr>';
+    }
   } catch (error) {
     console.error('Error loading schedule:', error);
+    document.querySelector('#schedule-table tbody').innerHTML = 
+      '<tr><td colspan="8">Error loading widget activity</td></tr>';
   }
 }
 

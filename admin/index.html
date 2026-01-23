@@ -520,26 +520,29 @@
     <div id="refresh-schedule-tab" class="tab-content">
       <div class="card">
         <div class="card-header">
-          <h2 class="card-title">Refresh Schedule</h2>
-          <button class="btn btn-success" onclick="refreshAllLocations()">↻ Refresh All Now</button>
+          <h2 class="card-title">Customer Widget Refresh Schedule</h2>
+          <p style="color: #6B7280; font-size: 14px; margin-top: 5px;">
+            Shows when customer widgets last pulled data from YOUR API and when they'll refresh next.<br>
+            Refresh frequency: <strong>10 minutes</strong> (configured in Settings tab under "Location Data Pull")
+          </p>
         </div>
         
         <table id="schedule-table">
           <thead>
             <tr>
               <th>Location</th>
-              <th>Last Refresh</th>
-              <th>Next Refresh</th>
-              <th>Interval</th>
-              <th>Failures</th>
-              <th>Last Error</th>
+              <th>Customer</th>
+              <th>Last Widget Pull</th>
+              <th>Total Widget Requests</th>
+              <th>Requests (Last Hour)</th>
+              <th>Requests (Last 24h)</th>
+              <th>Next Widget Refresh</th>
               <th>Status</th>
-              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td colspan="8" class="loading">Loading schedule...</td>
+              <td colspan="8" class="loading">Loading widget activity...</td>
             </tr>
           </tbody>
         </table>

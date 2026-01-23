@@ -641,14 +641,56 @@ app.post('/api/admin/refresh-all-now', async (req, res) => {
 app.get('/api/admin/refresh-schedule', async (req, res) => {
   const connection = await pool.getConnection();
   try {
-    const [schedule] = await connection.query(
-      `SELECT rs.*, l.location_name, c.company_name
-       FROM refresh_schedule rs
-       JOIN locations l ON l.id = rs.location_id
-       JOIN customers c ON c.id = l.customer_id
-       ORDER BY rs.next_refresh_at ASC`
+    // Get location refresh interval from settings
+    const [settings] = await connection.query(
+      "SELECT config_value FROM system_config WHERE config_key = 'location_refresh_interval_minutes'"
     );
-    res.json(schedule);
+    const locationRefreshInterval = settings.length > 0 ? parseInt(settings[0].config_value) : 10;
+    
+    const [schedule] = await connection.query(
+      `SELECT 
+         l.id as location_id,
+         l.location_name,
+         c.company_name,
+         c.id as customer_id,
+         (SELECT MAX(created_at) 
+          FROM api_logs 
+          WHERE location_id = l.id 
+          AND endpoint = '/api/widget/conditions'
+         ) as last_widget_pull,
+         (SELECT COUNT(*) 
+          FROM api_logs 
+          WHERE location_id = l.id 
+          AND endpoint = '/api/widget/conditions'
+         ) as total_requests,
+         (SELECT COUNT(*) 
+          FROM api_logs 
+          WHERE location_id = l.id 
+          AND endpoint = '/api/widget/conditions'
+          AND created_at >= DATE_SUB(NOW(), INTERVAL 1 HOUR)
+         ) as requests_last_hour,
+         (SELECT COUNT(*) 
+          FROM api_logs 
+          WHERE location_id = l.id 
+          AND endpoint = '/api/widget/conditions'
+          AND created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+         ) as requests_last_24h
+       FROM locations l
+       JOIN customers c ON c.id = l.customer_id
+       WHERE l.is_active = TRUE
+       ORDER BY l.location_name ASC`
+    );
+    
+    // Add next refresh estimate and interval
+    const enrichedSchedule = schedule.map(s => ({
+      ...s,
+      location_refresh_interval_minutes: locationRefreshInterval,
+      next_widget_refresh: s.last_widget_pull 
+        ? new Date(new Date(s.last_widget_pull).getTime() + locationRefreshInterval * 60 * 1000).toISOString()
+        : null
+    }));
+    
+    res.json(enrichedSchedule);
   } catch (error) {
     console.error('Admin refresh schedule error:', error);
     res.status(500).json({ error: 'Failed to fetch refresh schedule' });
