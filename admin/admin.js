@@ -83,7 +83,6 @@ async function loadCustomers() {
         <td>${c.website_url || 'N/A'}</td>
         <td>${c.contact_email || 'N/A'}</td>
         <td><code style="font-size: 10px;">${c.api_key}</code></td>
-        <td>-</td>
         <td>${c.is_active ? '✅ Active' : '❌ Inactive'}</td>
         <td>
           <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="editCustomer(${c.id})">
@@ -95,7 +94,7 @@ async function loadCustomers() {
   } catch (error) {
     console.error('Error loading customers:', error);
     document.querySelector('#customers-table tbody').innerHTML = 
-      `<tr><td colspan="7">Error: ${error.message}</td></tr>`;
+      `<tr><td colspan="6">Error: ${error.message}</td></tr>`;
   }
 }
 
