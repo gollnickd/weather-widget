@@ -1445,6 +1445,158 @@ app.post('/api/messages/:id/click', async (req, res) => {
   }
 });
 
+// ============================================
+// ADMIN MESSAGE MANAGEMENT ENDPOINTS
+// ============================================
+
+// Get all templates (admin)
+app.get('/api/admin/message-templates', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [templates] = await connection.query(
+      'SELECT * FROM message_templates ORDER BY display_order, id'
+    );
+    res.json(templates);
+  } catch (error) {
+    console.error('Admin get templates error:', error);
+    res.status(500).json({ error: 'Failed to load templates' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Get single template (admin)
+app.get('/api/admin/message-templates/:id', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const [templates] = await connection.query(
+      'SELECT * FROM message_templates WHERE id = ?',
+      [req.params.id]
+    );
+    
+    if (templates.length === 0) {
+      return res.status(404).json({ error: 'Template not found' });
+    }
+    
+    res.json(templates[0]);
+  } catch (error) {
+    console.error('Get template error:', error);
+    res.status(500).json({ error: 'Failed to load template' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Create template (admin)
+app.post('/api/admin/message-templates', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { template_name, message_text, display_order, is_default } = req.body;
+    
+    const [result] = await connection.query(
+      `INSERT INTO message_templates (template_name, message_text, display_order, is_default)
+       VALUES (?, ?, ?, ?)`,
+      [template_name, message_text, display_order || 0, is_default ? 1 : 0]
+    );
+    
+    res.json({ success: true, id: result.insertId });
+  } catch (error) {
+    console.error('Create template error:', error);
+    res.status(500).json({ error: 'Failed to create template' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Update template (admin)
+app.put('/api/admin/message-templates/:id', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const { template_name, message_text, display_order, is_default } = req.body;
+    
+    await connection.query(
+      `UPDATE message_templates 
+       SET template_name = ?, message_text = ?, display_order = ?, is_default = ?
+       WHERE id = ?`,
+      [template_name, message_text, display_order || 0, is_default ? 1 : 0, req.params.id]
+    );
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Update template error:', error);
+    res.status(500).json({ error: 'Failed to update template' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Delete template (admin)
+app.delete('/api/admin/message-templates/:id', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.query('DELETE FROM message_templates WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Delete template error:', error);
+    res.status(500).json({ error: 'Failed to delete template' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Get all customer messages (admin)
+app.get('/api/admin/customer-messages', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    const filter = req.query.filter || 'active';
+    
+    let whereClause = '';
+    if (filter === 'active') {
+      whereClause = 'WHERE cm.is_active = TRUE AND cm.is_expired = FALSE';
+    } else if (filter === 'expired') {
+      whereClause = 'WHERE cm.is_expired = TRUE';
+    }
+    // 'all' = no where clause
+    
+    const [messages] = await connection.query(
+      `SELECT 
+         cm.*,
+         c.company_name,
+         l.location_name
+       FROM customer_messages cm
+       JOIN customers c ON c.id = cm.customer_id
+       LEFT JOIN locations l ON l.id = cm.location_id
+       ${whereClause}
+       ORDER BY cm.created_at DESC
+       LIMIT 500`
+    );
+    
+    res.json(messages);
+  } catch (error) {
+    console.error('Admin get messages error:', error);
+    res.status(500).json({ error: 'Failed to load messages' });
+  } finally {
+    connection.release();
+  }
+});
+
+// Deactivate message (admin)
+app.post('/api/admin/customer-messages/:id/deactivate', async (req, res) => {
+  const connection = await pool.getConnection();
+  try {
+    await connection.query(
+      'UPDATE customer_messages SET is_active = FALSE WHERE id = ?',
+      [req.params.id]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Deactivate message error:', error);
+    res.status(500).json({ error: 'Failed to deactivate message' });
+  } finally {
+    connection.release();
+  }
+});
+
 // Cron job to expire old messages (runs every hour)
 cron.schedule('0 * * * *', async () => {
   const connection = await pool.getConnection();

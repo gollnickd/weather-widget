@@ -411,6 +411,8 @@
       <button class="tab" onclick="switchTab('locations')">Locations</button>
       <button class="tab" onclick="switchTab('weather-data')">Weather Data</button>
       <button class="tab" onclick="switchTab('refresh-schedule')">Refresh Schedule</button>
+      <button class="tab" onclick="switchTab('message-templates')">Message Templates</button>
+      <button class="tab" onclick="switchTab('customer-messages')">Customer Messages</button>
       <button class="tab" onclick="switchTab('api-logs')">API Logs</button>
       <button class="tab" onclick="switchTab('settings')">Settings</button>
     </div>
@@ -538,6 +540,73 @@
           <tbody>
             <tr>
               <td colspan="8" class="loading">Loading schedule...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Message Templates Tab -->
+    <div id="message-templates-tab" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Message Templates</h2>
+          <button class="btn btn-primary" onclick="showAddTemplateModal()">+ Add Template</button>
+        </div>
+        
+        <table id="templates-table">
+          <thead>
+            <tr>
+              <th>Template Name</th>
+              <th>Message Text</th>
+              <th>Display Order</th>
+              <th>Default</th>
+              <th>Created</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="6" class="loading">Loading templates...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Customer Messages Tab -->
+    <div id="customer-messages-tab" class="tab-content">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Customer Messages</h2>
+          <button class="btn btn-secondary" onclick="loadCustomerMessages()">↻ Refresh</button>
+        </div>
+        
+        <div style="margin-bottom: 16px; display: flex; gap: 12px;">
+          <button class="btn" onclick="filterMessages('active')" id="filter-active">Active</button>
+          <button class="btn" onclick="filterMessages('expired')" id="filter-expired">Expired</button>
+          <button class="btn" onclick="filterMessages('all')" id="filter-all">All</button>
+        </div>
+        
+        <table id="customer-messages-table">
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Message</th>
+              <th>Type</th>
+              <th>CTA</th>
+              <th>Views</th>
+              <th>Clicks</th>
+              <th>CTR</th>
+              <th>Posted</th>
+              <th>Expires</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td colspan="11" class="loading">Loading messages...</td>
             </tr>
           </tbody>
         </table>
@@ -944,6 +1013,56 @@
         <div style="display: flex; gap: 10px; justify-content: flex-end;">
           <button type="button" class="btn btn-secondary" onclick="closeModal('change-password')">Cancel</button>
           <button type="submit" class="btn btn-primary">Change Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  
+  <!-- Add/Edit Template Modal -->
+  <div id="template-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="template-modal-title">Add Message Template</h3>
+        <button class="close-btn" onclick="closeModal('template')">&times;</button>
+      </div>
+      
+      <form id="template-form" onsubmit="event.preventDefault(); saveTemplate();">
+        <input type="hidden" id="template-id">
+        
+        <div class="form-group">
+          <label class="form-label">Template Name *</label>
+          <input type="text" class="form-input" id="template-name" required 
+                 placeholder="e.g., last_minute_opening">
+          <small style="color: #6B7280; font-size: 12px;">Use lowercase with underscores (no spaces)</small>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Message Text *</label>
+          <textarea class="form-input" id="template-text" required 
+                    placeholder="The message customers will see..."
+                    maxlength="255" style="min-height: 80px;"></textarea>
+          <small style="color: #6B7280; font-size: 12px;">
+            <span id="template-char-count">0</span>/255 characters
+          </small>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Display Order</label>
+          <input type="number" class="form-input" id="template-order" value="0" min="0">
+          <small style="color: #6B7280; font-size: 12px;">Lower numbers appear first</small>
+        </div>
+        
+        <div class="form-group">
+          <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+            <input type="checkbox" id="template-default" checked>
+            <span>Available to all customers by default</span>
+          </label>
+        </div>
+        
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+          <button type="button" class="btn btn-secondary" onclick="closeModal('template')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Template</button>
         </div>
       </form>
     </div>

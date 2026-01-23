@@ -211,22 +211,22 @@
         }
         
         .pp-customer-message {
-          background: rgba(255, 255, 255, 0.25);
-          border: 2px solid rgba(255, 255, 255, 0.4);
+          background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+          border: 2px solid #F59E0B;
           border-radius: 12px;
           padding: 14px;
           margin-bottom: 16px;
           position: relative;
           z-index: 1;
-          backdrop-filter: blur(10px);
           cursor: pointer;
           transition: all 0.2s;
+          box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
         }
         
         .pp-customer-message:hover {
-          background: rgba(255, 255, 255, 0.35);
+          background: linear-gradient(135deg, #FDE68A 0%, #FCD34D 100%);
           transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
         }
         
         .pp-customer-message:active {
@@ -234,24 +234,25 @@
         }
         
         .pp-message-icon {
-          font-size: 18px;
+          font-size: 20px;
           margin-bottom: 6px;
         }
         
         .pp-message-text {
           font-size: 14px;
-          font-weight: 500;
+          font-weight: 600;
           line-height: 1.4;
-          color: white;
+          color: #92400E;
         }
         
         .pp-message-cta {
           font-size: 11px;
-          opacity: 0.9;
-          margin-top: 6px;
+          margin-top: 8px;
           display: flex;
           align-items: center;
           gap: 4px;
+          color: #B45309;
+          font-weight: 500;
         }
         
         .pp-widget-footer {

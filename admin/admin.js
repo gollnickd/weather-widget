@@ -46,6 +46,8 @@ function switchTab(tabName) {
   else if (tabName === 'weather-data') loadWeatherData();
   else if (tabName === 'api-logs') loadApiLogs();
   else if (tabName === 'refresh-schedule') loadRefreshSchedule();
+  else if (tabName === 'message-templates') loadMessageTemplates();
+  else if (tabName === 'customer-messages') loadCustomerMessages();
   else if (tabName === 'settings') loadSettings();
 }
 
@@ -663,6 +665,230 @@ async function loadCustomersForEditLocation() {
     }
   } catch (error) {
     console.error('Error loading customers for select:', error);
+  }
+}
+
+// ============================================
+// MESSAGE TEMPLATES TAB
+// ============================================
+
+async function loadMessageTemplates() {
+  try {
+    const response = await fetch(`${API_BASE}/admin/message-templates`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const templates = await response.json();
+    
+    const tbody = document.querySelector('#templates-table tbody');
+    tbody.innerHTML = templates.map(t => `
+      <tr>
+        <td><code>${t.template_name}</code></td>
+        <td>${t.message_text}</td>
+        <td>${t.display_order}</td>
+        <td>${t.is_default ? '✅ Yes' : '❌ No'}</td>
+        <td style="font-size: 12px;">${new Date(t.created_at).toLocaleDateString()}</td>
+        <td>
+          <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" 
+                  onclick="editTemplate(${t.id})">Edit</button>
+          <button class="btn" style="padding: 6px 12px; font-size: 12px; background: #FEE2E2; color: #991B1B;" 
+                  onclick="deleteTemplate(${t.id}, '${t.template_name}')">Delete</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (error) {
+    console.error('Error loading templates:', error);
+    document.querySelector('#templates-table tbody').innerHTML = 
+      '<tr><td colspan="6">Error loading templates</td></tr>';
+  }
+}
+
+function showAddTemplateModal() {
+  document.getElementById('template-modal-title').textContent = 'Add Message Template';
+  document.getElementById('template-id').value = '';
+  document.getElementById('template-name').value = '';
+  document.getElementById('template-text').value = '';
+  document.getElementById('template-order').value = '0';
+  document.getElementById('template-default').checked = true;
+  document.getElementById('template-char-count').textContent = '0';
+  openModal('template');
+}
+
+async function editTemplate(id) {
+  try {
+    const response = await fetch(`${API_BASE}/admin/message-templates/${id}`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const template = await response.json();
+    
+    document.getElementById('template-modal-title').textContent = 'Edit Message Template';
+    document.getElementById('template-id').value = template.id;
+    document.getElementById('template-name').value = template.template_name;
+    document.getElementById('template-text').value = template.message_text;
+    document.getElementById('template-order').value = template.display_order;
+    document.getElementById('template-default').checked = template.is_default;
+    document.getElementById('template-char-count').textContent = template.message_text.length;
+    openModal('template');
+  } catch (error) {
+    console.error('Error loading template:', error);
+    alert('Error loading template');
+  }
+}
+
+async function saveTemplate() {
+  const id = document.getElementById('template-id').value;
+  const data = {
+    template_name: document.getElementById('template-name').value,
+    message_text: document.getElementById('template-text').value,
+    display_order: parseInt(document.getElementById('template-order').value),
+    is_default: document.getElementById('template-default').checked
+  };
+  
+  try {
+    const url = id ? `${API_BASE}/admin/message-templates/${id}` : `${API_BASE}/admin/message-templates`;
+    const method = id ? 'PUT' : 'POST';
+    
+    const response = await fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: JSON.stringify(data)
+    });
+    
+    const result = await response.json();
+    
+    if (response.ok && result.success) {
+      alert(id ? 'Template updated!' : 'Template created!');
+      closeModal('template');
+      loadMessageTemplates();
+    } else {
+      alert('Error: ' + (result.error || 'Failed to save template'));
+    }
+  } catch (error) {
+    console.error('Error saving template:', error);
+    alert('Network error. Please try again.');
+  }
+}
+
+async function deleteTemplate(id, name) {
+  if (!confirm(`Delete template "${name}"?`)) return;
+  
+  try {
+    const response = await fetch(`${API_BASE}/admin/message-templates/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    
+    if (response.ok) {
+      alert('Template deleted');
+      loadMessageTemplates();
+    } else {
+      alert('Error deleting template');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Network error');
+  }
+}
+
+// Character counter for template text
+document.addEventListener('DOMContentLoaded', function() {
+  const templateText = document.getElementById('template-text');
+  if (templateText) {
+    templateText.addEventListener('input', function() {
+      document.getElementById('template-char-count').textContent = this.value.length;
+    });
+  }
+});
+
+// ============================================
+// CUSTOMER MESSAGES TAB
+// ============================================
+
+let messageFilter = 'active';
+
+async function loadCustomerMessages() {
+  try {
+    const response = await fetch(`${API_BASE}/admin/customer-messages?filter=${messageFilter}`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    const messages = await response.json();
+    
+    const tbody = document.querySelector('#customer-messages-table tbody');
+    tbody.innerHTML = messages.map(m => {
+      const ctr = m.view_count > 0 ? ((m.click_count / m.view_count) * 100).toFixed(1) : '0.0';
+      const status = m.is_expired ? '⚫ Expired' : m.is_active ? '🟢 Active' : '🔴 Inactive';
+      const statusColor = m.is_expired ? '#6B7280' : m.is_active ? '#10B981' : '#EF4444';
+      
+      return `
+        <tr>
+          <td><strong>${m.company_name}</strong></td>
+          <td style="max-width: 250px;">${m.message_text}</td>
+          <td>${m.message_type === 'quick_post' ? '⚡ Quick' : '✏️ Custom'}</td>
+          <td>${m.cta_type === 'phone' ? '📞 Phone' : m.cta_type === 'url' ? '🌐 URL' : '—'}</td>
+          <td>${m.view_count}</td>
+          <td>${m.click_count}</td>
+          <td><strong>${ctr}%</strong></td>
+          <td style="font-size: 12px;">${new Date(m.created_at).toLocaleString()}</td>
+          <td style="font-size: 12px;">${new Date(m.expires_at).toLocaleString()}</td>
+          <td style="color: ${statusColor};">${status}</td>
+          <td>
+            ${m.is_active ? `
+              <button class="btn" style="padding: 6px 12px; font-size: 12px; background: #FEE2E2; color: #991B1B;" 
+                      onclick="deactivateMessage(${m.id})">Deactivate</button>
+            ` : ''}
+          </td>
+        </tr>
+      `;
+    }).join('');
+    
+    if (messages.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 20px; color: #6B7280;">No messages found</td></tr>';
+    }
+  } catch (error) {
+    console.error('Error loading messages:', error);
+    document.querySelector('#customer-messages-table tbody').innerHTML = 
+      '<tr><td colspan="11">Error loading messages</td></tr>';
+  }
+}
+
+function filterMessages(filter) {
+  messageFilter = filter;
+  
+  // Update button styles
+  document.querySelectorAll('[id^="filter-"]').forEach(btn => {
+    btn.style.background = '';
+    btn.style.color = '';
+  });
+  
+  const activeBtn = document.getElementById(`filter-${filter}`);
+  if (activeBtn) {
+    activeBtn.style.background = '#0891B2';
+    activeBtn.style.color = 'white';
+  }
+  
+  loadCustomerMessages();
+}
+
+async function deactivateMessage(id) {
+  if (!confirm('Deactivate this message? It will no longer appear in the widget.')) return;
+  
+  try {
+    const response = await fetch(`${API_BASE}/admin/customer-messages/${id}/deactivate`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    
+    if (response.ok) {
+      alert('Message deactivated');
+      loadCustomerMessages();
+    } else {
+      alert('Error deactivating message');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Network error');
   }
 }
 
