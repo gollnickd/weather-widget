@@ -480,13 +480,13 @@
     <div id="weather-data-tab" class="tab-content">
       <div class="card">
         <div class="card-header">
-          <h2 class="card-title">Weather API Data</h2>
+          <h2 class="card-title">Current Weather Data (Latest per Location)</h2>
           <p style="color: #6B7280; font-size: 14px; margin-top: 5px;">
-            <strong>Fetched from WeatherAPI:</strong> When we last pulled data from WeatherAPI.com<br>
-            <strong>Next Refresh:</strong> When this location will be refreshed next
+            <strong>Last WeatherAPI Fetch:</strong> When we last pulled fresh data from WeatherAPI.com<br>
+            <strong>Next WeatherAPI Refresh:</strong> When we'll pull fresh data from WeatherAPI.com again (based on 60-minute interval setting)
           </p>
           <div style="display: flex; gap: 10px;">
-            <button class="btn btn-success" onclick="refreshAllNow()">🔄 Refresh All Now</button>
+            <button class="btn btn-success" onclick="refreshAllNow()">🔄 Refresh All from WeatherAPI Now</button>
             <button class="btn btn-secondary" onclick="loadWeatherData()">↻ Reload Table</button>
           </div>
         </div>
@@ -503,8 +503,8 @@
               <th>Weather Condition</th>
               <th>Cloud Cover</th>
               <th>Humidity</th>
-              <th>Fetched from WeatherAPI</th>
-              <th>Next Refresh</th>
+              <th>Last WeatherAPI Fetch</th>
+              <th>Next WeatherAPI Refresh</th>
             </tr>
           </thead>
           <tbody>

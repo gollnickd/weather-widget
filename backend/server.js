@@ -562,7 +562,12 @@ app.get('/api/admin/weather-data', async (req, res) => {
        JOIN locations l ON l.id = wd.location_id
        JOIN customers c ON c.id = l.customer_id
        LEFT JOIN refresh_schedule rs ON rs.location_id = l.id
-       ORDER BY wd.fetched_at DESC`
+       WHERE wd.fetched_at = (
+         SELECT MAX(fetched_at) 
+         FROM weather_data 
+         WHERE location_id = wd.location_id
+       )
+       ORDER BY l.location_name ASC`
     );
     res.json(data);
   } catch (error) {
@@ -1130,11 +1135,17 @@ app.post('/api/admin/locations', async (req, res) => {
        latitude, longitude, timezone || 'America/Los_Angeles']
     );
     
+    // Get refresh interval from settings
+    const [settings] = await connection.query(
+      "SELECT config_value FROM system_config WHERE config_key = 'refresh_interval_minutes'"
+    );
+    const refreshInterval = settings.length > 0 ? parseInt(settings[0].config_value) : 60;
+    
     // Add to refresh schedule
     await connection.query(
       `INSERT INTO refresh_schedule (location_id, next_refresh_at, refresh_interval_minutes)
-       VALUES (?, NOW(), 10)`,
-      [result.insertId]
+       VALUES (?, NOW(), ?)`,
+      [result.insertId, refreshInterval]
     );
     
     res.json({
