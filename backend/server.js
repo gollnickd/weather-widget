@@ -174,6 +174,12 @@ async function updateLocationWeather(locationId) {
     
     const location = locations[0];
     
+    // Get refresh interval from settings
+    const [settings] = await connection.query(
+      "SELECT config_value FROM system_config WHERE config_key = 'refresh_interval_minutes'"
+    );
+    const refreshInterval = settings.length > 0 ? parseInt(settings[0].config_value) : 60;
+    
     // Fetch weather data
     const weatherData = await fetchWeatherData(location.latitude, location.longitude);
     
@@ -184,8 +190,8 @@ async function updateLocationWeather(locationId) {
       weatherData.waveHeight
     );
     
-    // Calculate expiry time (10 minutes from now)
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    // Calculate expiry time based on refresh interval setting (e.g., 60 minutes from now)
+    const expiresAt = new Date(Date.now() + refreshInterval * 60 * 1000);
     
     // Insert weather data
     await connection.query(
